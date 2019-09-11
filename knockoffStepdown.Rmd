@@ -1,0 +1,327 @@
+---
+title: "KS_pvalue"
+author: "xzh"
+date: "8/15/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+f = function(x){
+  return(dnorm(x,mean=0,sd=1))
+}
+g = function(x){
+  return(dnorm(x,mean=0.5,sd=1))
+}
+
+# index: the affected censor, K: the number of all the censors
+generateN = function(mu){
+  column = rnorm(100,mean=mu,sd=1)
+  return(as.matrix(column))
+}
+
+# n = number of infected censor, K = Number of Censor
+simulate_topr = function(n,r=10,a=46.55){
+  mu = c(rep(0.5,n),rep(0,100-n))
+  W = rep(0,100)
+  m = 0
+  data = c()
+  allW = c()
+  
+  while (TRUE) {
+    m = m + 1
+    data=cbind(data,generateN(mu))
+    W = W + log(g(data[,m])/f(data[,m]))
+    W = ifelse(W>0,W,0)
+    allW = cbind(allW,W)
+    w = sort(W,decreasing = TRUE)[1:r]
+    r.index = sort(W,decreasing = TRUE,index.return =TRUE)$ix[1:r]
+    t = sum(w)
+    if (t > a){
+      break
+    }
+  }
+  # data: the whole dataset, n: stopping time, 
+  # W: the vector of all the W statistic, r.index: selected index
+  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index)
+  return(result)
+}
+
+# t = Stopping time T, K = Number of censor
+simulate_topr_GlobalNull = function(t,mu,r=10,a=46.55){
+  W = rep(0,100)
+  m = 0
+  data = c()
+  for (i in 1:t){
+    m = m + 1
+    data=cbind(data,generateN(mu))
+    W = W + log(g(data[,m])/f(data[,m]))
+    W = ifelse(W>0,W,0)
+    w = sort(W,decreasing = TRUE)[1:r]
+    r.index = sort(W,decreasing = TRUE,index.return =TRUE)$ix[1:r]
+    t0 = sum(w)
+    if (t0 > a){
+      break
+    }
+  }
+  result <- list(data=data,eStop=m,n=t0,W=W,r.index = r.index)
+  return(result)
+}
+
+
+simulate_topr_GlobalNull_B = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
+  indicator = c()
+  for (i in 1:B){
+    Wr = simulate_topr_GlobalNull(topr$StopT,mu, r = 10, a = 46.55)
+    index = Wr$r.index[which(Wr$r.index %in% rejIndex==FALSE)]
+    W0 = Wr$W[index]
+    
+    indicator = c(indicator, ifelse(W0>topr$allW[tindex,Wr$eStop],1,0))
+  }
+  return(indicator)
+}
+
+simulate_topr_KnockoffGlobalNull_B = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
+  indicator = c()
+  # W_ = c()
+  # St = c()
+  for (i in 1:B){
+    Wr = simulate_topr_GlobalNull(topr$StopT,mu, r = 10, a = 46.55)
+    index = Wr$r.index[which(Wr$r.index %in% rejIndex==FALSE)]
+    W0 = Wr$W[index]
+    # W_ = c(W_,W0)
+    # St = c(St,Wr$eStop)
+    W0 = matrix(rep(W0,length(tindex)),length(tindex),byrow = TRUE)
+    ind = ifelse(W0 > topr$allW[tindex,Wr$eStop],1,0)
+    # if (1 %in% ind[1,]){
+    #   break
+    # }
+    indicator = cbind(indicator, ind)
+  }
+  return(indicator)
+}
+```
+
+
+```{r}
+# t = Stopping time T, K = Number of censor
+simulate_topr_GlobalNull_Stepdown = function(t,K,ObsW,rindex,r=10,a=46.55){
+  W = rep(0,K)
+  m = 0
+  data = c()
+  r = r - (100-K)
+  ObsW = ObsW[rindex,]
+  mu = rep(0,100)
+  
+  for (i in 1:t){
+    m = m + 1
+    data=cbind(data,generateN(mu)[1:K])
+    W = W + log(g(data[,m])/f(data[,m]))
+    W = ifelse(W>0,W,0)
+    w = sort(W,decreasing = TRUE)[1:r]
+    if (is.null(rindex)){
+      t0 = sum(w)
+    } else if (length(rindex)==1){
+      t0 = sum(w)+ObsW[t]
+    } else {
+      t0 = sum(w)+sum(ObsW[,t])
+    }
+    
+    if (t0 > a){
+      break
+    }
+  }
+  result <- list(W=w,StopT=i)
+  return(result)
+}
+
+
+simulate_topr_GlobalNull_B_Stepdown = function(topr,rindex,tindex,B = 200,K = 100,a = 46.55){
+  indicator = c()
+  for (i in 1:B){
+    s = simulate_topr_GlobalNull_Stepdown(t=topr$StopT,ObsW=topr$allW,rindex=rindex,K = K, r = 10, a = 46.55)
+    # print(s$StopT)
+    indicator = c(indicator, ifelse(s$W>topr$allW[tindex,s$StopT],1,0))
+  }
+  return(indicator)
+}
+```
+
+
+
+
+
+```{r}
+knockoff = function(topr,q0){
+  muNull = rep(0,100)
+  null = simulate_topr_GlobalNull(topr$StopT,mu=muNull,r=10,a=46.55)
+  
+  W = topr$W - null$W
+  for (t in seq(0,10,0.01)){
+    Spt = sum(W> t)
+    Smt = sum(W<(-t))
+    q = (1 + Smt)/Spt
+    if (q <= q0){
+      break
+    } else if (t == 10){
+      t = 1000
+    }
+  }
+  
+  reject_index = which(W > t)
+  return(reject_index)
+}
+
+```
+
+```{r}
+Stepdown = function(topr,q=0.2){
+  rindex = c()
+  K0 = 100
+  q = 0.2
+  pvalue = c()
+  for (i in topr$r.index){
+    # print(rindex)
+    ind = simulate_topr_GlobalNull_B_Stepdown(topr,rindex=rindex,i,K=K0)
+    p = sum(ind)/length(ind)
+    pvalue = c(pvalue,p)
+    if (p <= q/(K0-90)){
+      K0 = K0-1
+      rindex = c(rindex,i)
+    } else{
+      break
+    }
+  }
+  # pvalue = cbind(topr$r.index,pvalue)
+  # fdr = sum((pvalue[,2]<q)&(pvalue[,1] %in% seq(1,sig) == FALSE))/sum(pvalue[,2]<q)
+  # power = sum((pvalue[,2]<q)&(pvalue[,1] %in% seq(1,sig)))/sig
+  
+  result = list(p=pvalue,rindex=rindex)
+  return(result)
+}
+```
+
+```{r}
+knockoffAcp = function(sig=5){
+  topr = simulate_topr(n=sig)
+  rejIndex0 = knockoff(topr,q0=0.2)
+  rejIndex1 = Stepdown(topr)$rindex
+  rejIndex = union(rejIndex0,rejIndex1)
+  
+  if (length(rejIndex)==1){
+    muHat = mean(topr$data[rejIndex,])
+  } else{
+    muHat = apply(topr$data[rejIndex,],1,mean)
+  }
+  mu = rep(0,100)
+  mu[rejIndex] = muHat
+  
+  rejT = intersect(rejIndex,topr$r.index)
+
+  p=c()
+  for (i in rejT){
+    mu0 = mu
+    mu0[i] = 0
+    ind = simulate_topr_KnockoffGlobalNull_B(topr,mu0,rejIndex,tindex=i)
+    p = rbind(p,c(i,sum(ind)/length(ind)))
+  }
+  
+  tindex = setdiff(topr$r.index,rejT)
+  ind = simulate_topr_KnockoffGlobalNull_B(topr,mu,rejIndex,tindex=tindex)
+  p0 = cbind(tindex,apply(ind,1,sum)/dim(ind)[2])
+  p = rbind(p,p0)
+  p = p[sort(p[,2],index.return=TRUE)$ix,]
+  # p=cbind(p,p.adjust(p[,2],method="BH"))
+  
+  p=cbind(p,p.adjust(p[,2],method="BH"))
+  fdr01 = sum((p[,3]<0.1)&(p[,1] %in% seq(1,sig) == FALSE))/sum(p[,3]<0.1)
+  power01 = sum((p[,3]<0.1)&(p[,1] %in% seq(1,sig)))/sig
+  
+  fdr02 = sum((p[,3]<0.2)&(p[,1] %in% seq(1,sig) == FALSE))/sum(p[,3]<0.2)
+  power02 = sum((p[,3]<0.2)&(p[,1] %in% seq(1,sig)))/sig
+  
+  result = list(p=p,fdr01=fdr01,power01=power01,fdr02=fdr02,power02=power02)
+  return(result)
+}
+```
+
+
+```{r}
+library(tcltk2) 
+FDR01=c()
+POWER01=c()
+FDR02=c()
+POWER02=c()
+
+pb <- tkProgressBar("进度","已完成 %", 0, 100)
+size = 100
+for (i in 1:size){
+  KA = knockoffAcp(sig=20)
+  FDR01 = c(FDR01,KA$fdr01)
+  POWER01 = c(POWER01,KA$power01)
+  
+  FDR02 = c(FDR02,KA$fdr02)
+  POWER02 = c(POWER02,KA$power02)
+  
+  info<- sprintf("已完成 %d%%", round(i*100/size))  
+  setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+}
+close(pb)
+```
+
+
+
+```{r}
+FDR01[is.nan(FDR01)] = 0
+mean(FDR01)
+mean(POWER01)
+FWER01 = sum(FDR01>0)/length(FDR01)
+FWER01
+```
+
+
+
+```{r}
+FDR02[is.nan(FDR02)] = 0
+mean(FDR02)
+mean(POWER02)
+FWER02 = sum(FDR02>0)/length(FDR02)
+FWER02
+```
+
+
+
+
+
+knockoff + step down + bh on selected
+
+  | # affected | $\mu$ | $\mu_g$ |  $q$  |  FDR  |  POWER  | FWER  |
+  | :--------: | :---: | :-----: | :---: | :---: | :-----: | :---: |
+  |      1     |  0.5  |   0.5   |  0.1  | 0.016 |  0.97   | 0.03  | 
+  |      1     |  0.5  |   0.5   |  0.2  | 0.022 |  0.98   | 0.04  | 
+  |      5     |  0.5  |   0.5   |  0.1  | 0.042 |  0.468  | 0.14  |
+  |      5     |  0.5  |   0.5   |  0.2  | 0.07  |  0.576  | 0.23  |
+  |      10    |  0.5  |   0.5   |  0.1  | 0.019 |  0.243  | 0.08  |
+  |      10    |  0.5  |   0.5   |  0.2  | 0.058 |  0.396  | 0.25  |
+  |      20    |  0.5  |   0.5   |  0.1  | 0.015 |  0.122  | 0.06  |
+  |      20    |  0.5  |   0.5   |  0.2  | 0.043 |  0.186  | 0.2   |
+  
+  
+  | # affected | $\mu$ | $\mu_g$ |  $q$  |  FDR  |  POWER  | FWER  |
+  | :--------: | :---: | :-----: | :---: | :---: | :-----: | :---: |
+  |      1     |  0.3  |   0.5   |  0.1  | 0.028 |  0.5    | 0.04  |
+  |      1     |  0.3  |   0.5   |  0.2  | 0.059 |  0.74   | 0.08  |
+  |      5     |  0.3  |   0.5   |  0.1  | 0.051 |  0.198  | 0.09  |
+  |      5     |  0.3  |   0.5   |  0.2  | 0.089 |  0.32   | 0.2   |
+  |      10    |  0.3  |   0.5   |  0.1  | 0.041 |  0.123  | 0.1   |
+  |      10    |  0.3  |   0.5   |  0.2  | 0.083 |  0.207  | 0.23  |
+  |      20    |  0.3  |   0.5   |  0.1  | 0.014 |  0.066  | 0.04  |
+  |      20    |  0.3  |   0.5   |  0.2  | 0.036 |  0.122  | 0.15  |
+  
+  
+  
+  
+  
