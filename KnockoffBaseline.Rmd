@@ -25,7 +25,7 @@ generateN = function(mu){
 
 # n = number of infected censor, K = Number of Censor
 simulate_topr = function(n,r=10,a=46.55){
-  mu = c(rep(0.3,n),rep(0,100-n))
+  mu = c(rep(0.5,n),rep(0,100-n))
   W = rep(0,100)
   m = 0
   data = c()
@@ -135,8 +135,6 @@ knockoff = function(topr,q0){
 }
 ```
 
-  fdr01 = sum((p[,3]<0.1)&(p[,1] %in% seq(1,sig) == FALSE))/sum(p[,3]<0.1)
-  power01 = sum((p[,3]<0.1)&(p[,1] %in% seq(1,sig)))/sig
   
 
 ```{r}
@@ -238,8 +236,8 @@ POWERBhAll=c()
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
 size = 200
 
-sig=20
-q=0.1
+sig=1
+q=0.2
 for (i in 1:size){
   topr = simulate_topr(n=sig)
 
@@ -265,7 +263,7 @@ for (i in 1:size){
   # bh on all
   meanX = apply(topr$data,1,mean)
   p = 1 - pnorm(meanX,mean=0,sd=1/sqrt(topr$StopT))
-  p = cbind(topr$r.index,p)
+  p = cbind(seq(1,100),p)
   p_bh = p.adjust(p[,2],method = "BH")
   p = cbind(p,p_bh)
   fdrBhAll = sum((p[,3]<q)&(p[,1] %in% seq(1,sig) == FALSE))/sum(p[,3]<q)
@@ -286,39 +284,50 @@ close(pb)
 ```{r}
 mean(FDRTopr)
 mean(POWERTopr)
+
 mean(FDRBhSelect)
 mean(POWERBhSelect)
+FWERSelect = sum(FDRBhSelect>0)/length(FDRBhSelect)
+FWERSelect
+
 mean(FDRBhAll)
 mean(POWERBhAll)
+FWERBhAll = sum(FDRBhAll>0)/length(FDRBhAll)
+FWERBhAll
 ```
 
 
 Topr  
-  | # affected | $\mu$ | $\mu_g$ |  FDR  |  POWER  | 
-  | :--------: | :---: | :-----: | :---: | :-----: | 
-  |      5     |  0.5  |   0.5   | 0.618 |  0.765  | 
-  |      10    |  0.5  |   0.5   | 0.42  |  0.58   |
-  |      20    |  0.5  |   0.5   | 0.212 |  0.394  |
+  | # affected | $\mu_g$ |  FDR  |  POWER  | 
+  | :--------: | :-----: | :---: | :-----: | 
+  |      1     |   0.5   |  0.9  |  1      |
+  |      5     |   0.5   | 0.547 |  0.906  | 
+  |      10    |   0.5   | 0.282 |  0.718  |
+  |      20    |   0.5   | 0.095 |  0.453  |
   
 Topr + Normal + BH on select
-  | # affected | $\mu$ | $\mu_g$ |  $q$  |  FDR  |  POWER  | 
-  | :--------: | :---: | :-----: | :---: | :---: | :-----: | 
-  |      5     |  0.5  |   0.5   |  0.1  | 0.354 |  0.739  |
-  |      5     |  0.5  |   0.5   |  0.2  | 0.438 |  0.762  |
-  |      10    |  0.5  |   0.5   |  0.1  | 0.264 |  0.568  |
-  |      10    |  0.5  |   0.5   |  0.2  | 0.336 |  0.587  |
-  |      20    |  0.5  |   0.5   |  0.1  | 0.177 |  0.384  |
-  |      20    |  0.5  |   0.5   |  0.2  | 0.188 |  0.392  |
+  | # affected | $\mu_g$ |  $q$  |  FDR  |  POWER  |  FWER  |
+  | :--------: | :-----: | :---: | :---: | :-----: | :----: | 
+  |      1     |   0.5   |  0.1  | 0.478 |  1      |  0.7   | 
+  |      1     |   0.5   |  0.2  | 0.643 |  1      |  0.865 |
+  |      5     |   0.5   |  0.1  | 0.381 |  0.894  |  0.97  |
+  |      5     |   0.5   |  0.2  | 0.456 |  0.916  |  0.995 |
+  |      10    |   0.5   |  0.1  | 0.232 |  0.7145 |  0.945 |
+  |      10    |   0.5   |  0.2  | 0.251 |  0.724  |  0.975 |
+  |      20    |   0.5   |  0.1  | 0.090 |  0.45   |  0.65  | 
+  |      20    |   0.5   |  0.2  | 0.106 |  0.445  |  0.72  |
   
 Normal + BH on all
-  | # affected | $\mu$ | $\mu_g$ |  $q$  |  FDR  |  POWER  | 
-  | :--------: | :---: | :-----: | :---: | :---: | :-----: | 
-  |      5     |  0.5  |   0.5   |  0.1  | 0.407 |  0.478  |
-  |      5     |  0.5  |   0.5   |  0.2  | 0.403 |  0.593  |
-  |      10    |  0.5  |   0.5   |  0.1  | 0.422 |  0.3    |
-  |      10    |  0.5  |   0.5   |  0.2  | 0.418 |  0.452  |
-  |      20    |  0.5  |   0.5   |  0.1  | 0.233 |  0.275  |
-  |      20    |  0.5  |   0.5   |  0.2  | 0.215 |  0.446  |
+  | # affected | $\mu_g$ |  $q$  |  FDR  |  POWER  |  FWER  |
+  | :--------: | :-----: | :---: | :---: | :-----: | :----: | 
+  |      1     |   0.5   |  0.1  | 0.131 |  1      |  0.24  |
+  |      1     |   0.5   |  0.2  | 0.242 |  1      |  0.415 |
+  |      5     |   0.5   |  0.1  | 0.100 |  0.786  |  0.385 |
+  |      5     |   0.5   |  0.2  | 0.212 |  0.868  |  0.695 |
+  |      10    |   0.5   |  0.1  | 0.099 |  0.6165 |  0.47  |
+  |      10    |   0.5   |  0.2  | 0.190 |  0.768  |  0.805 |
+  |      20    |   0.5   |  0.1  | 0.083 |  0.503  |  0.61  |
+  |      20    |   0.5   |  0.2  | 0.173 |  0.679  |  0.905 |
   
   
   
