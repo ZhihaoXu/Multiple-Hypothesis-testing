@@ -1,5 +1,5 @@
 ---
-title: "KS_pvalue"
+title: "PvalueCI New Statistic"
 author: "xzh"
 date: "10/07/2019"
 output:
@@ -13,6 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
+library(tcltk2) 
+library(parallel)
+library(gap)
+
 f = function(x){
   return(dnorm(x,mean=0,sd=1))
 }
@@ -31,11 +35,20 @@ simulate_topr = function(n,mug=0.5,r=10,a=46.55){
   mu = c(rep(mug,n),rep(0,100-n))
   W = rep(0,100)
   m = 0
-  data = c()
+  
+  size0 = 10000
+  
+  data = matrix(generateN(mu,size=100*size0),nrow=100,byrow=FALSE)
+  
   allW = c()
+  # allT = c()
   while (TRUE) {
     m = m + 1
-    data=cbind(data,generateN(mu))
+    
+    if (m %% size0 == 0) {
+      data=cbind(data,matrix(generateN(mu,size=100*size0),nrow=100,byrow=FALSE))
+    }
+    
     W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
     allW = cbind(allW,W)
@@ -48,9 +61,11 @@ simulate_topr = function(n,mug=0.5,r=10,a=46.55){
     if (t > a){
       break
     }
+    # allT = cbind(allT,apply(data,1,mean)/(1/sqrt(m)))
   }
+  data = data[,1:m]
+  T0 = apply(data,1,mean)/(apply(data,1,sd)/sqrt(m))
   
-  T0 = apply(data,1,mean)/(1/sqrt(m))
   # data: the whole dataset, n: stopping time, 
   # W: the vector of all the W statistic, r.index: selected index
   result <- list(data=data,StopT=m,W=W,allW=allW,T0=T0,r.index = r.index,sig=n,mug=mug)
@@ -64,12 +79,12 @@ simulate_topr_GlobalNullT = function(t,mu,r=10,a=46.55){
   
   data = matrix(generateN(mu,size=100*t),nrow=100,byrow=FALSE)
   
-  while (m < t){
+  while (TRUE){
     m = m + 1
-    # 
-    # if (m %% 50 == 0) {
-    #   data=cbind(data,matrix(generateN(mu,size=100*50),nrow=100,byrow=FALSE))
-    # }
+    
+    if (m%%t==0){
+      data = cbind(data,matrix(generateN(mu,size=100*t),nrow=100,byrow=FALSE))
+    }
     
     W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
@@ -77,41 +92,46 @@ simulate_topr_GlobalNullT = function(t,mu,r=10,a=46.55){
     s = sort(W,decreasing = TRUE,index.return =TRUE)
     w = s$x[1:r]
     r.index = s$ix[1:r]
-    
-    t0 = sum(w)
-    if (t0 > a){
+
+    if (sum(w) > a){
       break
     }
   }
   
-  T0 = apply(data,1,mean)/(1/sqrt(m))
+  # s = sort(W,decreasing = TRUE,index.return =TRUE)
+  # w = s$x[1:r]
+  # r.index = s$ix[1:r]
   
-  result <- list(data=data,eStop=m,n=t0,W=W,T0=T0,r.index = r.index)
+  data = data[,1:m]
+  T0 = apply(data,1,mean)/(apply(data,1,sd)/sqrt(m))
+  
+  result <- list(data=data,eStop=m,W=W,T0=T0,r.index = r.index)
   return(result)
 }
 
 
-simulate_topr_GlobalNullT_BT = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
+simulate_topr_KnockoffGlobalNull_BT = function(topr,mu,rejIndex,tindex,r=10,B = 200,a = 46.55){
   indicator = c()
-  for (i in 1:B){
-    Tr = simulate_topr_GlobalNullT(topr$StopT,mu, r = 10, a = 46.55)
-    index = Tr$r.index[which(Tr$r.index %in% rejIndex==FALSE)]
-    T0 = Tr$T0[index]
+  b = 0
+  while (b <= B){
+    Wr = simulate_topr_GlobalNullT(topr$StopT,mu, r = 10, a = 46.55)
+    index = Wr$r.index[which(Wr$r.index %in% rejIndex==FALSE)]
+    T0 = Wr$T0[index]
+    T0 = matrix(rep(T0,length(tindex)),length(tindex),byrow = TRUE)
     
-    indicator = c(indicator, ifelse(T0>topr$T0[tindex],1,0))
-  }
-  return(indicator)
-}
-
-simulate_topr_KnockoffGlobalNull_BT = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
-  indicator = c()
-  for (i in 1:B){
-    Tr = simulate_topr_GlobalNullT(topr$StopT,mu, r = 10, a = 46.55)
-    index = Tr$r.index[which(Tr$r.index %in% rejIndex==FALSE)]
-    T_ = Tr$T0[index]
-    T0 = matrix(rep(T_,length(tindex)),length(tindex),byrow = TRUE)
+    # if (length(tindex)==1){
+    #   tar = mean(topr$data[tindex,1:Wr$eStop])/(sd(topr$data[tindex,1:Wr$eStop])/sqrt(Wr$eStop))
+    # } else{
+    #   tar = apply(topr$data[tindex,1:Wr$eStop],1,mean)/(apply(topr$data[tindex,1:Wr$eStop],1,sd)/sqrt(Wr$eStop))
+    # }
+    # 
+    # ind = ifelse(T0 > tar,1,0)
+    
+    # 无提前停
     ind = ifelse(T0 > topr$T0[tindex],1,0)
+    
     indicator = cbind(indicator, ind)
+    b = b + length(index)
   }
   return(indicator)
 }
@@ -130,12 +150,17 @@ simulate_topr_GlobalNullT_Stepdown = function(t,K,ObsW,rindex,r=10,a=46.55){
   
   data = matrix(generateN(mu,size=K*t),nrow=K,byrow=FALSE)
   
-  for (i in 1:t){
+  while (m < t){
     m = m + 1
-    # data=cbind(data,generateN(mu)[1:K])
+    
+    # if (m%%t==0){
+    #   data = cbind(data,matrix(generateN(mu,size=100*t),nrow=100,byrow=FALSE))
+    # }
+    
     W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
-    w = sort(W,decreasing = TRUE)[1:r]
+    s = sort(W,decreasing = TRUE,index.return=TRUE)
+    w = s$x[1:r]
     if (is.null(rindex)){
       t0 = sum(w)
     } else if (length(rindex)==1){
@@ -148,27 +173,27 @@ simulate_topr_GlobalNullT_Stepdown = function(t,K,ObsW,rindex,r=10,a=46.55){
       break
     }
   }
-  result <- list(W=w,StopT=i)
+  
+  data = data[,1:m]
+  T0 = apply(data,1,mean)/(apply(data,1,sd)/sqrt(m))
+  
+  result <- list(W=w,T0=T0[s$ix[1:r]],StopT=i)
   return(result)
 }
 
 
 simulate_topr_GlobalNullT_B_Stepdown = function(topr,rindex,tindex,B = 200,K = 100,a = 46.55){
   indicator = c()
-  for (i in 1:B){
+  b = 0
+  while (b<=B){
     s = simulate_topr_GlobalNullT_Stepdown(t=topr$StopT,ObsW=topr$allW,rindex=rindex,K = K, r = 10, a = 46.55)
     # print(s$StopT)
-    indicator = c(indicator, ifelse(s$W>topr$allW[tindex,s$StopT],1,0))
+    indicator = c(indicator, ifelse(s$T0>topr$T0[tindex],1,0))
+    b = b+length(s$T0)
   }
   return(indicator)
 }
-```
 
-
-
-
-
-```{r}
 knockoff = function(topr,q0){
   muNull = rep(0,100)
   null = simulate_topr_GlobalNullT(topr$StopT,mu=muNull,r=10,a=46.55)
@@ -189,15 +214,13 @@ knockoff = function(topr,q0){
   return(reject_index)
 }
 
-```
-
-```{r}
 Stepdown = function(topr,q=0.2){
   rindex = c()
   K0 = 100
   q = 0.2
   pvalue = c()
-  for (i in topr$r.index){
+  index = topr$r.index[sort(topr$T0[topr$r.index],index.return=TRUE,decreasing = TRUE)$ix]
+  for (i in index){
     # print(rindex)
     ind = simulate_topr_GlobalNullT_B_Stepdown(topr,rindex=rindex,i,K=K0)
     p = sum(ind)/length(ind)
@@ -222,11 +245,10 @@ Stepdown = function(topr,q=0.2){
 
 ```{r}
 knockoffAcp = function(topr){
-  q = 0.2
   rejIndex0 = knockoff(topr,q0=0.2)
   rejIndex1 = Stepdown(topr)$rindex
   rejIndex = union(rejIndex0,rejIndex1)
-  
+
   if (length(rejIndex)==1){
     muHat = mean(topr$data[rejIndex,])
   } else{
@@ -234,6 +256,10 @@ knockoffAcp = function(topr){
   }
   mu = rep(0,100)
   mu[rejIndex] = muHat
+  
+  # mu = rep(0,100)
+  # mu[1:topr$sig] = topr$mug
+  # rejIndex = c(1:topr$sig)
   
   rejT = intersect(topr$r.index,rejIndex)
 
@@ -251,8 +277,8 @@ knockoffAcp = function(topr){
   p = rbind(p,p0)
   # p = p[sort(p[,2],index.return=TRUE)$ix,]
   p=cbind(p,p.adjust(p[,2],method="BH"))
-  p = cbind(p,apply(topr$data[topr$r.index,],1,mean))
-  p = cbind(p,topr$W[topr$r.index])
+  p = cbind(p,apply(topr$data[p[,1],],1,mean))
+  p = cbind(p,topr$W[p[,1]])
   
   fdr01 = sum((p[,3]<0.1)&(p[,1] %in% seq(1,sig) == FALSE))/sum(p[,3]<0.1)
   power01 = sum((p[,3]<0.1)&(p[,1] %in% seq(1,sig)))/sig
@@ -266,15 +292,15 @@ knockoffAcp = function(topr){
 ```
 
 
+
 ```{r}
-library(tcltk2) 
 FDR01=c()
 POWER01=c()
 FDR02=c()
 POWER02=c()
 
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 50
+size = 100
 sig=10
 for (i in 1:size){
   topr = simulate_topr(n=sig)
@@ -332,14 +358,14 @@ FWER02
 simulate_topr_CI = function(mu,t,r=10,a=46.55){
   W = rep(0,100)
   m = 0
-  # data = c()
-  data = matrix(generateN(mu,size=100*50),nrow=100,byrow=FALSE)
+  data = matrix(generateN(mu,size=100*t),nrow=100,byrow=FALSE)
   
   while(TRUE){
   # for (i in 1:t){
     m = m + 1
-    if (m %% 50 == 0) {
-      data=cbind(data,matrix(generateN(mu,size=100*50),nrow=100,byrow=FALSE))
+    
+    if (m %% t == 0) {
+      data=cbind(data,matrix(generateN(mu,size=100*t),nrow=100,byrow=FALSE))
     }
     
     W = W + log(g(data[,m])/f(data[,m]))
@@ -348,13 +374,16 @@ simulate_topr_CI = function(mu,t,r=10,a=46.55){
     s = sort(W,decreasing = TRUE,index.return =TRUE)
     w = s$x[1:r]
     r.index = s$ix[1:r]
-    
+
     t0 = sum(w)
     if (t0 > a){
       break
     }
   }
+  
+  data = data[,1:m]
   Xbar = apply(data,1,mean)
+  
   result <- list(data=data,StopTb=m,W=W,r.index = r.index,Xbar = Xbar)
   return(result)
 }
@@ -374,12 +403,7 @@ computeF = function(topr,theta,mu,tindex,alpha){
     if (tindex%in%Xi$r.index==FALSE){
       next
     }
-    ri = (Xi$Xbar[tindex]-theta)/(1/sqrt(Xi$StopTb))
-    # print(i)
-    # print(mu[Xi$r.index])
-    # if (mu[tindex] %in% mu[Xi$r.index] ==FALSE){
-    #   next
-    # }
+    ri = (Xi$Xbar[tindex]-theta)/(sd(Xi$data[tindex,])/sqrt(Xi$StopTb))
     i = i+1
     Ri = c(Ri,ri)
   }
@@ -387,9 +411,8 @@ computeF = function(topr,theta,mu,tindex,alpha){
   muL = Ri[200*(1-alpha)]
   return(R - muL)
 }
-```
 
-```{r}
+
 CI = function(topr,tindex,mu,q){
   theta = 100
   a = mean(topr$data[tindex,]) ##<0
@@ -412,8 +435,67 @@ CI = function(topr,tindex,mu,q){
   oldTheta = theta
   theta = (b*fa - a*fb)/(fa-fb)
   k=1
-  while ((abs(theta-oldTheta)>=0.01)&(k<=10)){
+  while ((abs(theta-oldTheta)>=0.01)&(k<=5)){
     f0 = computeF(topr,theta=theta,mu=mu,tindex,alpha=q)
+    if (f0<0){
+      a = theta
+      fa = f0
+    }else{
+      b = theta
+      fb = f0
+    }
+    oldTheta = theta
+    theta = (b*fa - a*fb)/(fa-fb)
+    k = k+1
+  }
+  return(theta)
+}
+```
+
+
+ 
+```{r}
+computeF2 = function(topr,theta,mu,tindex,alpha){
+  # R = (mean(topr$data[tindex,])-theta)/(sd(topr$data[tindex,])/sqrt(topr$StopT))
+  mu[tindex] = theta
+  i = 1
+  ind = c()
+  while (i <= 200){
+    Xi = simulate_topr_CI(mu,t=topr$StopT)
+    if (tindex%in%Xi$r.index==FALSE){
+      next
+    }
+    ri = (Xi$Xbar[tindex]-theta)/(sd(Xi$data[tindex,])/sqrt(Xi$StopTb))
+    tar = (mean(topr$data[tindex,])-theta)/(sd(topr$data[tindex,])/sqrt(topr$StopT))
+    ind = c(ind,ifelse(ri>tar,1,0))
+    i = i+1
+  }
+  return(-mean(ind)+alpha)
+}
+
+CI2 = function(topr,tindex,mu,q){
+  theta = 100
+  a = mean(topr$data[tindex,]) ##<0
+  fa = computeF2(topr,theta=a,mu=mu,tindex,alpha=q)
+  b = a - 2*1/sqrt(topr$StopT)
+  fb = computeF2(topr,theta=b,mu=mu,tindex,alpha=q)
+  while (TRUE){
+    if (fb<=0){
+      b = b - 0.5*1/sqrt(topr$StopT)
+      if (b<=0){
+        return(0)
+      }
+      fb = computeF2(topr,theta=b,mu=mu,tindex,alpha=q)
+    } else{
+      break
+    }
+  }
+  
+  oldTheta = theta
+  theta = (b*fa - a*fb)/(fa-fb)
+  k=1
+  while ((abs(theta-oldTheta)>=0.005)&(k<=10)){
+    f0 = computeF2(topr,theta=theta,mu=mu,tindex,alpha=q)
     if (f0<0){
       a = theta
       fa = f0
@@ -433,11 +515,14 @@ CI = function(topr,tindex,mu,q){
 
 
 ```{r}
-knockoffAcpCI = function(topr,q){
-  rejIndex0 = knockoff(topr,q0=0.2)
-  rejIndex1 = Stepdown(topr,q)$rindex
-  rejIndex = union(rejIndex0,rejIndex1)
-  
+knockoffAcpCIFCR = function(topr,q){
+  rejIndex = c()
+  while(length(rejIndex)==0){
+    rejIndex0 = knockoff(topr,q0=0.2)
+    rejIndex1 = Stepdown(topr,q=0.2)$rindex
+    rejIndex = union(rejIndex0,rejIndex1)
+  }
+
   if (length(rejIndex)==1){
     muHat = mean(topr$data[rejIndex,])
   } else{
@@ -462,8 +547,68 @@ knockoffAcpCI = function(topr,q){
   p = rbind(p,p0)
   p=cbind(p,p.adjust(p[,2],method="BH"))
   
+  Nr = sum(p[,2]<q)
+  q0 = Nr * q/10
+  
   LB = c()
-  for (i in topr$r.index){
+  for (i in p[,1]){
+    if (p[p[,1]==i][2]>q0){
+      lb = 0
+    } else{
+      mu0 = mu
+      mu0[i] = 0
+      lb = CI(topr,tindex = i,mu=mu0,q0)
+    }
+    LB = c(LB,lb)
+  }
+  
+  p = cbind(p,LB)
+  mu = c(rep(topr$mug,topr$sig),rep(0,100-topr$sig))
+  p = cbind(p,mu[p[,1]])
+  p = cbind(p,apply(topr$data[p[,1],],1,mean))
+  colnames(p) = c("index","p-value","p-valueBH","CILowerBond","trueMu","muHat")
+  return(p)
+}
+
+
+knockoffAcpCI = function(topr,q){
+  # rejIndex = c()
+  # while(length(rejIndex)==0){
+  #   rejIndex0 = knockoff(topr,q0=0.2)
+  #   rejIndex1 = Stepdown(topr,q=0.2)$rindex
+  #   rejIndex = union(rejIndex0,rejIndex1)
+  # }
+  # 
+  # if (length(rejIndex)==1){
+  #   muHat = mean(topr$data[rejIndex,])
+  # } else{
+  #   muHat = apply(topr$data[rejIndex,],1,mean)
+  # }
+  # mu = rep(0,100)
+  # mu[rejIndex] = muHat
+  
+  rejIndex = c(1:topr$sig)
+  mu = rep(0,100)
+  mu[rejIndex] = topr$mug
+  
+  rejT = intersect(topr$r.index,rejIndex)
+
+  p=c()
+  for (i in rejT){
+    mu0 = mu
+    mu0[i] = 0
+    ind = simulate_topr_KnockoffGlobalNull_BT(topr,mu0,rejIndex,tindex=i)
+    p = rbind(p,c(i,sum(ind)/length(ind)))
+  }
+  
+  tindex = setdiff(topr$r.index,rejT)
+  ind = simulate_topr_KnockoffGlobalNull_BT(topr,mu,rejIndex,tindex=tindex)
+  p0 = cbind(tindex,apply(ind,1,sum)/dim(ind)[2])
+  p = rbind(p,p0)
+  p=cbind(p,p.adjust(p[,2],method="BH"))
+  
+  LB = c()
+  for (i in p[,1]){
     if (p[p[,1]==i][2]>q){
       lb = 0
     } else{
@@ -476,8 +621,8 @@ knockoffAcpCI = function(topr,q){
   
   p = cbind(p,LB)
   mu = c(rep(topr$mug,topr$sig),rep(0,100-topr$sig))
-  p = cbind(p,mu[topr$r.index])
-  p = cbind(p,apply(topr$data[topr$r.index,],1,mean))
+  p = cbind(p,mu[p[,1]])
+  p = cbind(p,apply(topr$data[p[,1],],1,mean))
   colnames(p) = c("index","p-value","p-valueBH","CILowerBond","trueMu","muHat")
   return(p)
 }
@@ -485,83 +630,245 @@ knockoffAcpCI = function(topr,q){
 
  | # affected | $\mu_g$ |  $q$  |   CR  |
  | :--------: | :-----: | :---: | :---: |
- |     20     |   0.5   |  0.1  | 0.603 |
- |     20     |   0.5   |  0.2  | 0.473 |
- |     10     |   0.5   |  0.1  | 0.791 |
- |     10     |   0.5   |  0.2  | 0.636 |
- |     5      |   0.5   |  0.1  | 0.829 |
- |     5      |   0.5   |  0.2  | 0.733 |
- |     1      |   0.5   |  0.1  | 
- |     1      |   0.5   |  0.2  | 
+ |     10     |   0.5   |  0.1  | 
+ |     10     |   0.5   |  0.2  | 0.819 |
+ |     5      |   0.5   |  0.1  | 
+ |     5      |   0.5   |  0.2  | 0.824 |
+ |     1      |   0.5   |  0.1  | 0.919 |
+ |     1      |   0.5   |  0.2  |
+ 
+ |     10     |   0.8   |  0.1  | 0.926 |
+ |     10     |   0.8   |  0.2  | 
+ |     5      |   0.8   |  0.1  | 
+ |     5      |   0.8   |  0.2  | 0.795 |
+ |     1      |   0.8   |  0.1  | 
+ |     1      |   0.8   |  0.2  |
+
+ |     10     |   0.3   |  0.1  | 
+ |     10     |   0.3   |  0.2  | 
+ |     5      |   0.3   |  0.1  |
+ |     5      |   0.3   |  0.2  | 
+ |     1      |   0.3   |  0.1  | 
+ |     1      |   0.3   |  0.2  |
 
 
 ```{r}
-library(tcltk2) 
-pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 100
-
-CR = c()
-for (i in 1:size){
-  topr = simulate_topr(n=5,mug=0.5)
-  p = knockoffAcpCI(topr,q=0.2)
-  cr = ifelse(p[,5]>=p[,4],1,0)
-  CR = c(CR,cr)
+estimateFCR = function(n,mug,q,size=100){
+  pb <- tkProgressBar("进度","已完成 %", 0, 100)
+  FCR = c()
+  pNull = c()
+  # CR = c()
+  for (i in 1:size){
+    topr = simulate_topr(n=n,mug=mug)
+    
+    p = knockoffAcpCIFCR(topr,q=q)
+    # cr = ifelse(p[,5]>=p[,4],1,0)
+    fcr = sum((p[,5]<p[,4])&(p[,2]<q))/sum((p[,2]<q))
+    FCR = c(FCR,fcr)
+    
+    CR = c(CR,cr)
+    pNull = c(pNull,p[,2][which(p[,1] %in% c(1:n)==FALSE)])
   
-  info<- sprintf("已完成 %d%%", round(i*100/size))  
-  setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+    info<- sprintf("已完成 %d%%", round(i*100/size))  
+    setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+  }
+  close(pb)
+  result = list(mCR=mean(CR),p0=pNull,FCR=FCR)
+  return(result)
 }
-close(pb)
-```
 
-```{r}
-mean(CR)
-```
-
-
-
-```{r}
-library(tcltk2) 
-pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 100
-
-CR = c()
-for (i in 1:size){
-  topr = simulate_topr(n=20,mug=0.5)
-  p = knockoffAcpCI(topr,q=0.1)
-  cr = ifelse(p[,5]>=p[,4],1,0)
-  CR = c(CR,cr)
+estimateCR = function(n,mug,q,size=100){
+  pb <- tkProgressBar("进度","已完成 %", 0, 100)
+  pNull = c()
+  CR = c()
+  for (i in 1:size){
+    topr = simulate_topr(n=n,mug=mug)
+    
+    p = knockoffAcpCI(topr,q=q)
+    cr = ifelse(p[,5]>=p[,4],1,0)
+    # fcr = sum((p[,5]<p[,4])&(p[,2]<q))/sum((p[,2]<q))
+    # FCR = c(FCR,fcr)
+    CR = c(CR,cr)
+    pNull = c(pNull,p[,2][which(p[,1] %in% c(1:n)==FALSE)])
   
-  info<- sprintf("已完成 %d%%", round(i*100/size))  
-  setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+    info<- sprintf("已完成 %d%%", round(i*100/size))  
+    setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+  }
+  close(pb)
+  result = list(mCR=mean(CR),p0=pNull,CR=CR)
+  return(result)
 }
-close(pb)
-```
-
-```{r}
-mean(CR)
 ```
 
 
 
+```{r}
+r1 = estimateCR(n=5,mug=0.8,q=0.1,size=100)
+
+r2 = estimateCR(n=10,mug=0.8,q=0.2,size=100)
+
+r3 = estimateCR(n=1,mug=0.8,q=0.1,size=100)
+
+r4 = estimateCR(n=1,mug=0.8,q=0.2,size=100)
+```
+
+
+
 
 ```{r}
-library(tcltk2) 
-pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 100
+r1$mCR
+r2$mCR
+r3$mCR
+r4$mCR
+```
 
-CR = c()
-for (i in 1:size){
-  topr = simulate_topr(n=20,mug=0.5)
-  p = knockoffAcpCI(topr,q=0.2)
-  cr = ifelse(p[,5]>=p[,4],1,0)
-  CR = c(CR,cr)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+knockoffAcp2 = function(topr){
   
-  info<- sprintf("已完成 %d%%", round(i*100/size))  
-  setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+  # rejIndex0 = knockoff(topr,q0=0.2)
+  # rejIndex0=c()
+  # rejIndex1 = Stepdown(topr,q=0.2)$rindex
+  # rejIndex = union(rejIndex0,rejIndex1)
+  # 
+  # if (length(rejIndex)==1){
+  #   muHat = mean(topr$data[rejIndex,])
+  # } else{
+  #   muHat = apply(topr$data[rejIndex,],1,mean)
+  # }
+  # mu = rep(0,100)
+  # mu[rejIndex] = muHat
+  # 
+  # print(rejIndex)
+  # print(muHat)
+  
+  mu = rep(0,100)
+  rejIndex = c()
+  
+  tindex = topr$r.index
+  ind = simulate_topr_KnockoffGlobalNull_BT(topr,mu,rejIndex,tindex=tindex)
+  p = cbind(tindex,apply(ind,1,mean))
+  return(p)
 }
-close(pb)
+
+simulate_topr_KnockoffGlobalNull_BT2 = function(topr,mu,rejIndex,tindex,r=10,B = 200,a = 46.55){
+  indicator1 = c()
+  indicator2 = c()
+  b = 0
+  count0 = 0
+  count1 = 0
+  while (b <= B){
+    # print(i)
+    Wr = simulate_topr_GlobalNullT(topr$StopT,mu, r = 10, a = 46.55)
+    index = Wr$r.index[which(Wr$r.index %in% rejIndex==FALSE)]
+    T0 = Wr$T0[index]
+    T0 = matrix(rep(T0,length(tindex)),length(tindex),byrow = TRUE)
+    
+    if (Wr$eStop < topr$StopT){
+      # print(Wr$eStop)
+      count0 = count0 + 1
+      if (length(tindex)==1){
+        tar = mean(topr$data[tindex,1:Wr$eStop])/(sd(topr$data[tindex,1:Wr$eStop])/sqrt(Wr$eStop))
+      } else{
+        tar = apply(topr$data[tindex,1:Wr$eStop],1,mean)/(apply(topr$data[tindex,1:Wr$eStop],1,sd)/sqrt(Wr$eStop))
+      }
+  
+      ind = ifelse(T0 > tar,1,0)
+      indicator1 = cbind(indicator1, ind)
+    } else {
+      count1 = count1 + 1
+      ind = ifelse(T0 > topr$T0[tindex],1,0)
+      indicator2 = cbind(indicator2, ind)
+    }
+    
+    if (count0==0){
+      indicator1 = cbind(rep(0,length(topr$r.index)))
+    } 
+    if (count1==0){
+      indicator2 = cbind(rep(0,length(topr$r.index)))
+    } 
+    # # 无提前停
+    # ind = ifelse(T0 > topr$T0[tindex],1,0)
+    b = b + length(index)
+  }
+  
+  result = list(ind1 = indicator1, ind2 = indicator2)
+  return(result)
+}
 ```
 
-```{r}
-mean(CR)
-```
+
+<!-- ```{r} -->
+<!-- p01 = c() -->
+<!-- p02 = c() -->
+<!-- TT = c() -->
+<!-- pb <- tkProgressBar("进度","已完成 %", 0, 100) -->
+<!-- size=50 -->
+<!-- for (i in 1:size){ -->
+<!--   topr = simulate_topr(n=9) -->
+<!--   # rejIndex0 = knockoff(topr,q0=0.2) -->
+<!--   # rejIndex1 = Stepdown(topr)$rindex -->
+<!--   # rejIndex = union(rejIndex0,rejIndex1) -->
+<!--   #  -->
+<!--   # if (length(rejIndex)==1){ -->
+<!--   #   muHat = mean(topr$data[rejIndex,]) -->
+<!--   # } else{ -->
+<!--   #   muHat = apply(topr$data[rejIndex,],1,mean) -->
+<!--   # } -->
+<!--   # mu = rep(0,100) -->
+<!--   # mu[rejIndex] = muHat -->
+<!--   mu = rep(0,100) -->
+<!--   mu[1:9] = 0.5 -->
+<!--   rejIndex = c(1:9) -->
+
+<!--   tindex = topr$r.index -->
+
+<!--   ind = simulate_topr_KnockoffGlobalNull_BT(topr,mu,rejIndex,tindex=tindex) -->
+<!--   if (sum(apply(ind$ind1,1,mean)==0)!=10){ -->
+<!--     p1 = cbind(tindex,apply(ind$ind1,1,mean)) -->
+<!--     p01 = c(p01,p1[,2][p1[,1]%in%c(1:9)==FALSE]) -->
+<!--   } -->
+
+<!--   if (sum(apply(ind$ind2,1,mean)==0)!=10){ -->
+<!--     p2 = cbind(tindex,apply(ind$ind2,1,mean)) -->
+<!--     p02 = c(p02,p2[,2][p2[,1]%in%c(1:9)==FALSE]) -->
+<!--   } -->
+
+
+
+
+
+<!--   info<- sprintf("已完成 %d%%", round(i*100/size)) -->
+<!--   setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info) -->
+<!-- } -->
+<!-- close(pb) -->
+<!-- hist(p01) -->
+<!-- hist(p02) -->
+<!-- ``` -->
+
+
+
+
+
+
+
+
+
+
+
