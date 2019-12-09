@@ -20,14 +20,14 @@ g = function(x){
 }
 
 # index: the affected censor, K: the number of all the censors
-generateN = function(mu){
-  column = rnorm(100,mean=mu,sd=1)
+generateN = function(mu,size=100){
+  column = rnorm(size,mean=mu,sd=1)
   return(as.matrix(column))
 }
 
 # n = number of infected censor, K = Number of Censor
-simulate_topr = function(n,r=10,a=46.55){
-  mu = c(rep(0.5,n),rep(0,100-n))
+simulate_topr = function(n,mug=0.5,r=10,a=46.55){
+  mu = c(rep(mug,n),rep(0,100-n))
   W = rep(0,100)
   m = 0
   data = c()
@@ -39,8 +39,11 @@ simulate_topr = function(n,r=10,a=46.55){
     W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
     allW = cbind(allW,W)
-    w = sort(W,decreasing = TRUE)[1:r]
-    r.index = sort(W,decreasing = TRUE,index.return =TRUE)$ix[1:r]
+    
+    s = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = s$x[1:r]
+    r.index = s$ix[1:r]
+    
     t = sum(w)
     if (t > a){
       break
@@ -48,7 +51,7 @@ simulate_topr = function(n,r=10,a=46.55){
   }
   # data: the whole dataset, n: stopping time, 
   # W: the vector of all the W statistic, r.index: selected index
-  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index)
+  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index,sig=n,mug=mug)
   return(result)
 }
 
@@ -56,58 +59,42 @@ simulate_topr = function(n,r=10,a=46.55){
 simulate_topr_GlobalNull = function(t,mu,r=10,a=46.55){
   W = rep(0,100)
   m = 0
-  data = c()
-  for (i in 1:t){
+  data = matrix(generateN(mu,size=100*t),nrow=100,byrow=FALSE)
+  while(TRUE){
+  # for (i in 1:t){
     m = m + 1
-    data=cbind(data,generateN(mu))
+    # data=cbind(data,generateN(mu))
+    
+    if (m %% t == 0) {
+      data=cbind(data,matrix(generateN(mu,size=100*t),nrow=100,byrow=FALSE))
+    }
+    
     W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
-    w = sort(W,decreasing = TRUE)[1:r]
-    r.index = sort(W,decreasing = TRUE,index.return =TRUE)$ix[1:r]
+    
+    s = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = s$x[1:r]
+    r.index = s$ix[1:r]
+    
     t0 = sum(w)
     if (t0 > a){
       break
     }
   }
-  result <- list(data=data,eStop=m,n=t0,W=W,r.index = r.index)
+  result <- list(data=data[,1:m],eStop=m,n=t0,W=W,r.index = r.index)
   return(result)
 }
-# 
-# simulate_topr_GlobalNull_B_CI = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
-#   indicator = c()
-#   for (i in 1:B){
-#     Wr = simulate_topr_GlobalNull(topr$StopT,mu, r = 10, a = 46.55)
-#     if (tindex %in% Wr$r.index == FALSE){
-#       i = i - 1
-#       next
-#     }
-#     W0 = Wr$W[tindex]
-#     indicator = c(indicator, ifelse(W0>topr$allW[tindex,Wr$eStop],1,0))
-#   }
-#   return(indicator)
-# }
 
-
-simulate_topr_GlobalNull_B = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
+simulate_topr_KnockoffGlobalNull_B = function(topr,mu,rejIndex,tindex,r=10,B = 25,a = 46.55){
   indicator = c()
   for (i in 1:B){
     Wr = simulate_topr_GlobalNull(topr$StopT,mu, r = 10, a = 46.55)
     index = Wr$r.index[which(Wr$r.index %in% rejIndex==FALSE)]
     W0 = Wr$W[index]
-    
-    indicator = c(indicator, ifelse(W0>topr$allW[tindex,Wr$eStop],1,0))
-  }
-  return(indicator)
-}
-
-simulate_topr_KnockoffGlobalNull_B = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
-  indicator = c()
-  for (i in 1:B){
-    Wr = simulate_topr_GlobalNull(topr$StopT,mu, r = 10, a = 46.55)
-    index = Wr$r.index[which(Wr$r.index %in% rejIndex==FALSE)]
-    W0 = Wr$W[index]
+    # W0 = Wr$W[tindex]
     W0 = matrix(rep(W0,length(tindex)),length(tindex),byrow = TRUE)
-    ind = ifelse(W0 > topr$allW[tindex,Wr$eStop],1,0)
+    # ind = ifelse(W0 > topr$allW[tindex,Wr$eStop],1,0)
+    ind = ifelse(W0 > topr$W[tindex],1,0)
     indicator = cbind(indicator, ind)
   }
   return(indicator)
@@ -120,14 +107,16 @@ simulate_topr_KnockoffGlobalNull_B = function(topr,mu,rejIndex,tindex,r=10,B = 5
 simulate_topr_GlobalNull_Stepdown = function(t,K,ObsW,rindex,r=10,a=46.55){
   W = rep(0,K)
   m = 0
-  data = c()
+  # data = c()
   r = r - (100-K)
   ObsW = ObsW[rindex,]
   mu = rep(0,100)
   
+  data = matrix(generateN(mu,size=K*t),nrow=K,byrow=FALSE)
+  
   for (i in 1:t){
     m = m + 1
-    data=cbind(data,generateN(mu)[1:K])
+    # data=cbind(data,generateN(mu)[1:K])
     W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
     w = sort(W,decreasing = TRUE)[1:r]
@@ -159,24 +148,33 @@ simulate_topr_GlobalNull_B_Stepdown = function(topr,rindex,tindex,B = 200,K = 10
 }
 
 # t = Stopping time T, K = Number of censor
-simulate_topr_CI = function(mu,r=10,a=46.55){
+simulate_topr_CI = function(mu,t,r=10,a=46.55){
   W = rep(0,100)
   m = 0
-  data = c()
-  while (TRUE){
+  # data = c()
+  data = matrix(generateN(mu,size=100*50),nrow=100,byrow=FALSE)
+  
+  while(TRUE){
+  # for (i in 1:t){
     m = m + 1
-    data=cbind(data,generateN(mu))
+    if (m %% 50 == 0) {
+      data=cbind(data,matrix(generateN(mu,size=100*50),nrow=100,byrow=FALSE))
+    }
+    
     W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
-    w = sort(W,decreasing = TRUE)[1:r]
-    r.index = sort(W,decreasing = TRUE,index.return =TRUE)$ix[1:r]
+    
+    s = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = s$x[1:r]
+    r.index = s$ix[1:r]
+    
     t0 = sum(w)
     if (t0 > a){
       break
     }
   }
-  Xbar = apply(data,1,mean)
-  result <- list(data=data,StopTb=m,W=W,r.index = r.index,Xbar = Xbar)
+  Xbar = apply(data[,1:m],1,mean)
+  result <- list(data=data[,1:m],StopTb=m,W=W,r.index = r.index,Xbar = Xbar)
   return(result)
 }
 ```
@@ -236,29 +234,30 @@ Stepdown = function(topr,q=0.2){
 ```
 
 
-```{r}
-CI1 = function(topr,tindex,mu,rejIndex,q=0.2){
-  mu0 = 0
-  max_depth = 10
-  depth = 1
-  left = 0
-  right = mean(topr$data[tindex,])
-  
-  while((depth <= max_depth)&((right-left)>0.01)){
-    mu0 = (left+right)/2
-    mu[tindex] = mu0
-    ind = simulate_topr_GlobalNull_B_CI(topr,mu,rejIndex,tindex=i)
-    p = mean(ind)
-    if (p <= q){
-      left = mu0
-    } else{
-      right = mu0
-    }
-    depth = depth + 1
-  }
-  return(left)
-}
-```
+<!-- ```{r} -->
+<!-- CI1 = function(topr,tindex,mu,rejIndex,q=0.2){ -->
+<!--   mu0 = 0 -->
+<!--   max_depth = 10 -->
+<!--   depth = 1 -->
+<!--   left = 0 -->
+<!--   right = mean(topr$data[tindex,]) -->
+
+<!--   while((depth <= max_depth)&((right-left)>0.01)){ -->
+<!--     mu0 = (left+right)/2 -->
+<!--     mu[tindex] = mu0 -->
+<!--     ind = simulate_topr_GlobalNull_B_CI(topr,mu,rejIndex,tindex=i) -->
+<!--     p = mean(ind) -->
+<!--     if (p <= q){ -->
+<!--       left = mu0 -->
+<!--     } else{ -->
+<!--       right = mu0 -->
+<!--     } -->
+<!--     depth = depth + 1 -->
+<!--   } -->
+<!--   return(left) -->
+<!-- } -->
+<!-- ``` -->
+
 
 <!-- ```{r} -->
 <!-- topr = simulate_topr(n=5) -->
@@ -286,18 +285,25 @@ CI1 = function(topr,tindex,mu,rejIndex,q=0.2){
 
 ```{r}
 knockoffAcp = function(topr){
-  q = 0.2
-  rejIndex0 = knockoff(topr,q0=0.2)
-  rejIndex1 = Stepdown(topr)$rindex
-  rejIndex = union(rejIndex0,rejIndex1)
+  # q = 0.2
+  # rejIndex0 = knockoff(topr,q0=0.2)
+  # rejIndex1 = Stepdown(topr)$rindex
+  # rejIndex = union(rejIndex0,rejIndex1)
+  # 
+  # if (length(rejIndex)==1){
+  #   muHat = mean(topr$data[rejIndex,])
+  # } else{
+  #   muHat = apply(topr$data[rejIndex,],1,mean)
+  # }
+  # mu = rep(0,100)
+  # mu[rejIndex] = muHat
   
-  if (length(rejIndex)==1){
-    muHat = mean(topr$data[rejIndex,])
-  } else{
-    muHat = apply(topr$data[rejIndex,],1,mean)
-  }
+  # rejIndex = seq(1,topr$sig)
+  # mu = c(rep(topr$mug,topr$sig),rep(0,100-topr$sig))
+  
   mu = rep(0,100)
-  mu[rejIndex] = muHat
+  mu[1] = 0.5
+  rejIndex = c(1)
   
   rejT = intersect(topr$r.index,rejIndex)
 
@@ -316,20 +322,6 @@ knockoffAcp = function(topr){
   # p = p[sort(p[,2],index.return=TRUE)$ix,]
   p=cbind(p,p.adjust(p[,2],method="BH"))
   
-  # LB = c()
-  # for (i in topr$r.index){
-  #   if (p[p[,1]==i][3]>q){
-  #     lb = 0
-  #   } else {
-  #     lb = CI1(topr,tindex=i,mu,rejIndex)
-  #   }
-  #   LB = c(LB,lb)
-  # }
-  # p = cbind(p,LB)
-  # p = cbind(p,apply(topr$data[topr$r.index,],1,mean))
-  # colnames(p) = c("index","p-value","p-valueBH","CILowerBond","muHat")
-  
-  
   fdr01 = sum((p[,3]<0.1)&(p[,1] %in% seq(1,sig) == FALSE))/sum(p[,3]<0.1)
   power01 = sum((p[,3]<0.1)&(p[,1] %in% seq(1,sig)))/sig
   
@@ -341,6 +333,26 @@ knockoffAcp = function(topr){
 }
 ```
 
+```{r}
+p0 = c()
+pb <- tkProgressBar("进度","已完成 %", 0, 100)
+size=100
+for (i in 1:size){
+  topr = simulate_topr(n=1)
+  mu = rep(0,100)
+  mu[1] = 0.5
+  rejIndex = c(1)
+  tindex = topr$r.index
+  ind = simulate_topr_KnockoffGlobalNull_B(topr,mu,rejIndex,tindex=tindex)
+  p_ = cbind(tindex,apply(ind,1,sum)/dim(ind)[2])
+  p0 = c(p0,p_[,2][p_[,1]%in%c(1:1)==FALSE])
+  
+  info<- sprintf("已完成 %d%%", round(i*100/size))
+  setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+}
+close(pb)
+```
+
 
 ```{r}
 library(tcltk2) 
@@ -350,7 +362,7 @@ FDR02=c()
 POWER02=c()
 
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 100
+size = 20
 sig=5
 for (i in 1:size){
   topr = simulate_topr(n=sig)
@@ -424,38 +436,46 @@ knockoff + step down + bh on selected
   
   
 ```{r}
-computeF = function(topr,theta,mu,tindex){
+computeF = function(topr,theta,mu,tindex,alpha){
   R = (mean(topr$data[tindex,])-theta)/(sd(topr$data[tindex,])/sqrt(topr$StopT))
   mu[tindex] = theta
   Ri = c()
   i = 1
   while (i <= 200){
-    Xi = simulate_topr_CI(mu)
-    ri = (Xi$Xbar[tindex]-theta)/(1/sqrt(Xi$StopTb))
-    if (tindex %in%Xi$r.index==FALSE){
+    Xi = simulate_topr_CI(mu,t=topr$StopT)
+    if (tindex%in%Xi$r.index==FALSE){
       next
     }
+    ri = (Xi$Xbar[tindex]-theta)/(sd(Xi$data[tindex,])/sqrt(Xi$StopTb)) # 
+    # print(i)
+    # print(mu[Xi$r.index])
+    # if (mu[tindex] %in% mu[Xi$r.index] ==FALSE){
+    #   next
+    # }
     i = i+1
     Ri = c(Ri,ri)
   }
   Ri = sort(Ri)
-  muL = Ri[200*(1-0.05)]
+  muL = Ri[200*(1-alpha)]
   return(R - muL)
 }
-
 ```
 
 ```{r}
-CI = function(topr,tindex){
+CI = function(topr,tindex,mu,q){
   theta = 100
   a = mean(topr$data[tindex,]) ##<0
-  fa = computeF(topr,theta=a,mu=mu,tindex)
+  fa = computeF(topr,theta=a,mu=mu,tindex,alpha=q)
   b = a - 2*1/sqrt(topr$StopT)
-  fb = computeF(topr,theta=b,mu=mu,tindex)
+  fb = computeF(topr,theta=b,mu=mu,tindex,alpha=q)
   while (TRUE){
     if (fb<=0){
+      # print(b)
       b = b - 0.5*1/sqrt(topr$StopT)
-      fb = computeF(topr,theta=b,mu=mu,tindex)
+      if (b<=0){
+        return(0) 
+      }
+      fb = computeF(topr,theta=b,mu=mu,tindex,alpha=q)
     } else{
       break
     }
@@ -464,8 +484,8 @@ CI = function(topr,tindex){
   oldTheta = theta
   theta = (b*fa - a*fb)/(fa-fb)
   k=1
-  while ((abs(theta-oldTheta)>=0.01)&(k<=5)){
-    f0 = computeF(topr,theta=theta,mu=mu,tindex)
+  while ((abs(theta-oldTheta)>=0.01)&(k<=10)){
+    f0 = computeF(topr,theta=theta,mu=mu,tindex,alpha=q)
     if (f0<0){
       a = theta
       fa = f0
@@ -475,26 +495,31 @@ CI = function(topr,tindex){
     }
     oldTheta = theta
     theta = (b*fa - a*fb)/(fa-fb)
+    k = k+1
   }
   return(theta)
 }
 ```
 
 
+
+
 ```{r}
-knockoffAcpCI = function(topr){
-  q = 0.2
-  rejIndex0 = knockoff(topr,q0=0.2)
-  rejIndex1 = Stepdown(topr)$rindex
-  rejIndex = union(rejIndex0,rejIndex1)
+knockoffAcpCI = function(topr,q){
+  # rejIndex0 = knockoff(topr,q0=0.2)
+  # rejIndex1 = Stepdown(topr,q)$rindex
+  # rejIndex = union(rejIndex0,rejIndex1)
+  # 
+  # if (length(rejIndex)==1){
+  #   muHat = mean(topr$data[rejIndex,])
+  # } else{
+  #   muHat = apply(topr$data[rejIndex,],1,mean)
+  # }
+  # mu = rep(0,100)
+  # mu[rejIndex] = muHat
   
-  if (length(rejIndex)==1){
-    muHat = mean(topr$data[rejIndex,])
-  } else{
-    muHat = apply(topr$data[rejIndex,],1,mean)
-  }
-  mu = rep(0,100)
-  mu[rejIndex] = muHat
+  rejIndex = seq(1,topr$sig)
+  mu = c(rep(topr$mug,topr$sig),rep(0,100-topr$sig))
   
   rejT = intersect(topr$r.index,rejIndex)
 
@@ -512,27 +537,82 @@ knockoffAcpCI = function(topr){
   p = rbind(p,p0)
   p=cbind(p,p.adjust(p[,2],method="BH"))
   
-  
-  
   LB = c()
-  for (i in topr$r.index){
-    if (p[p[,1]==i][3]>q){
+  for (i in p[,1]){
+    if (p[p[,1]==i][2]>q){
       lb = 0
     } else{
-      lb = CI(topr,tindex = i)
+      mu0 = mu
+      mu0[i] = 0
+      lb = CI(topr,tindex = i,mu=mu0,q)
     }
     LB = c(LB,lb)
   }
   
   p = cbind(p,LB)
-  p = cbind(p,apply(topr$data[topr$r.index,],1,mean))
-  colnames(p) = c("index","p-value","p-valueBH","CILowerBond","muHat")
+  trueMu = c(rep(topr$mug,topr$sig),rep(0,100-topr$sig))
+  p = cbind(p,trueMu[p[,1]])
+  p = cbind(p,apply(topr$data[p[,1],],1,mean))
+  colnames(p) = c("index","p-value","p-valueBH","CILowerBond","trueMu","muHat")
   return(p)
 }
 ```
 
 ```{r}
-topr = simulate_topr(n=10)
-p = knockoffAcpCI(topr)
+library(tcltk2) 
+pb <- tkProgressBar("进度","已完成 %", 0, 100)
+size = 20
+
+CR = c()
+for (i in 1:size){
+  topr = simulate_topr(n=10,mug=0.5)
+  p = knockoffAcpCI(topr,q=0.2)
+  cr = ifelse(p[,5]>=p[,4],1,0)
+  CR = c(CR,cr)
+  
+  info<- sprintf("已完成 %d%%", round(i*100/size))  
+  setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+}
+close(pb)
 ```
 
+```{r}
+mean(CR)
+```
+
+
+
+ | # affected | $\mu_g$ |  $q$  |   CR  |
+ | :--------: | :-----: | :---: | :---: |
+ |     20     |   0.5   |  0.1  | 0.726 |
+ |     20     |   0.5   |  0.2  | 0.602 |
+ |     10     |   0.5   |  0.1  | 0.829 |
+ |     10     |   0.5   |  0.2  | 0.71  |
+ |     5      |   0.5   |  0.1  | 0.9   | 
+ |     5      |   0.5   |  0.2  | 0.806 |
+ |     1      |   0.5   |  0.1  | 0.976 | 
+ |     1      |   0.5   |  0.2  | 0.941 | 
+
+ |     20     |   0.5   |  0.1  | 0.616 |
+ |     20     |   0.5   |  0.2  | 0.523 | 
+ |     10     |   0.8   |  0.1  | 0.737 |
+ |     10     |   0.8   |  0.2  | 0.667 |
+ |     5      |   0.8   |  0.1  | 0.858 |
+ |     5      |   0.8   |  0.2  | 0.784 |
+ |     1      |   0.8   |  0.1  | 0.97  |
+ |     1      |   0.8   |  0.2  | 0.874 | 
+ 
+ |     10     |   0.3   |  0.1  | 0.875 |
+ |     10     |   0.3   |  0.2  | 0.759 |
+ |     5      |   0.3   |  0.1  | 0.902 |
+ |     5      |   0.3   |  0.2  | 0.827 |
+  
+
+
+```{r}
+a = c()
+for (i in 1:1000){
+  topr = simulate_topr(n=10,mug=0.5)
+  a = c(a, mean(topr$data[1,]))
+}
+```

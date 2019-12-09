@@ -292,19 +292,19 @@ Stepdown = function(topr,q=0.2){
 
 ```{r}
 knockoffAcp = function(topr){
-  # rejIndex = c()
-  # while(length(rejIndex)==0){
-  #   rejIndex0 = knockoff(topr,q0=0.2)
-  #   rejIndex1 = Stepdown(topr,q=0.2)$rindex
-  #   rejIndex = union(rejIndex0,rejIndex1)
-  # }
-  # 
-  # mu = rep(0,100)
-  # mu[rejIndex] = topr$muHat[rejIndex]
-  
+  rejIndex = c()
+  while(length(rejIndex)==0){
+    rejIndex0 = knockoff(topr,q0=0.2)
+    rejIndex1 = Stepdown(topr,q=0.2)$rindex
+    rejIndex = union(rejIndex0,rejIndex1)
+  }
+
   mu = rep(0,100)
-  mu[1:topr$sig] = topr$mug
-  rejIndex = c(1:topr$sig)
+  mu[rejIndex] = topr$muHat[rejIndex]
+  
+  # mu = rep(0,100)
+  # mu[1:topr$sig] = topr$mug
+  # rejIndex = c(1:topr$sig)
   
   rejT = intersect(topr$r.index,rejIndex)
 
@@ -686,20 +686,18 @@ knockoffAcpCI = function(topr,q){
  |     5      |   0.5   |  0.2  | 0.807 |
  |     1      |   0.5   |  0.1  | 0.929 |
  |     1      |   0.5   |  0.2  | 0.819 |
- 
  |     10     |   0.8   |  0.1  | 0.885 |
  |     10     |   0.8   |  0.2  | 0.776 |  true distribution 0.81 
  |     5      |   0.8   |  0.1  | 0.919 |
  |     5      |   0.8   |  0.2  | 0.81  | 
  |     1      |   0.8   |  0.1  | 0.923 |  
  |     1      |   0.8   |  0.2  | 0.857 |    0.822
-
  |     10     |   0.3   |  0.1  | 0.898 |
  |     10     |   0.3   |  0.2  | 0.813 |
  |     5      |   0.3   |  0.1  | 0.923 |
  |     5      |   0.3   |  0.2  | 0.811 |
  |     1      |   0.3   |  0.1  | 0.929 |
- |     1      |   0.3   |  0.2  |
+ |     1      |   0.3   |  0.2  | 0.849 |
 
 
 ```{r}
