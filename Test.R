@@ -31,14 +31,14 @@ runs <- 3			# Number of times the tests are executed
 times <- rep(0, 15); dim(times) <- c(5,3)
 require(Matrix)		# Optimized matrix operations
 require(SuppDists)	# Optimized random number generators
-#Runif <- rMWC1019	# The fast uniform number generator
-Runif <- runif
+Runif <- rMWC1019	# The fast uniform number generator
+##Runif <- runif
 # If you don't have SuppDists, you can use: Runif <- runif
-#a <- rMWC1019(10, new.start=TRUE, seed=492166)	# Init. the generator
-#Rnorm <- rziggurat	# The fast normal number generator
+a <- rMWC1019(10, new.start=TRUE, seed=492166)	# Init. the generator
+Rnorm <- rziggurat	# The fast normal number generator
 # If you don't have SuppDists, you can use: Rnorm <- rnorm
-#b <- rziggurat(10, new.start=TRUE)	# Init. the generator
-Rnorm <- rnorm
+b <- rziggurat(10, new.start=TRUE)	# Init. the generator
+##Rnorm <- rnorm
 remove("a", "b")
 options(object.size=100000000)
 
