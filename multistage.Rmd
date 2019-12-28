@@ -1,0 +1,305 @@
+---
+title: "multistage"
+author: "Xu Zhihao"
+date: "12/23/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+N = 30
+a0 = 0
+tau = 1
+delta = 0.5
+```
+
+# compute e
+```{r}
+omega = rnorm(30,mean=0,sd=1)
+nu = rnorm(30,mean=0,sd=1)
+sam = sample(30,0)
+x0 = rnorm(1,mean=a0,sd=tau)
+x = c()
+y = c()
+for (i in 1:30){
+  if (i %in% sam){
+    x = c(x,x0 + omega[i] + delta)
+  } else{
+    x = c(x,x0 + omega[i])
+  }
+  y = c(y,x[i] + nu[i])
+  x0 = x[i]
+}
+
+v = c(y[1] - 1*1*a0)
+u = c(0)
+W = c(1 + tau^2)
+V = c(W[1] + 1)
+e = c(v[1]/V[1])
+G = c(W[1]/V[1])
+
+for (i in 2:30){
+  W = c(W, W[i-1] - W[i-1]*G[i-1] + 1)
+  u = c(u, u[i-1] + G[i-1]*v[i-1])
+  V = c(V, W[i] + 1)
+  G = c(G, W[i]/V[i])
+  v = c(v, y[i] - u[i])
+  e = c(e, v[i]/sqrt(V[i]))
+}
+p = 2*(1-pnorm(abs(e)))
+alpha = 0.01
+r1 = sum(p.adjust(p,"BH")<alpha)
+alpha = alpha*30/(30-r1)
+rej = which(p.adjust(p,"BH")<alpha)
+E = c(E,e)
+```
+
+
+
+```{r}
+hist(E)
+```
+
+
+
+
+
+
+
+```{r}
+j = 0
+sam = sample(30,6)
+while (TRUE){
+  omega = rnorm(30,mean=0,sd=1)
+  nu = rnorm(30,mean=0,sd=1)
+  x0 = rnorm(1,mean=a0,sd=tau)
+  x = c()
+  y = c()
+  for (i in 1:30){
+    if (i %in% sam){
+      x = c(x,x0 + omega[i] + delta)
+    } else{
+      x = c(x,x0 + omega[i])
+    }
+    y = c(y,x[i] + nu[i])
+    x0 = x[i]
+  }
+  
+  v = c(y[1] - 1*1*a0)
+  u = c(0)
+  W = c(1 + tau^2)
+  V = c(W[1] + 1)
+  e = c(v[1]/V[1])
+  G = c(W[1]/V[1])
+  
+  for (i in 2:30){
+    W = c(W, W[i-1] - W[i-1]*G[i-1] + 1)
+    u = c(u, u[i-1] + G[i-1]*v[i-1])
+    V = c(V, W[i] + 1)
+    G = c(G, W[i]/V[i])
+    v = c(v, y[i] - u[i])
+    e = c(e, v[i]/sqrt(V[i]))
+  }
+  
+  p = 2*(1-pnorm(abs(e)))
+  alpha = 0.01
+  r1 = sum(p.adjust(p,"BH")<alpha)
+  alpha = alpha*30/(30-r1)
+  rej = which(p.adjust(p,"BH")<alpha)
+  fdr = sum(rej %in% sam==FALSE)/length(rej)
+  # FDR = c(FDR,fdr)
+  power = sum(rej %in% sam)/length(sam)
+  # POWER = c(POWER,power)
+  j = j + 1
+  if ((length(rej)!=0)|(j==700)){
+    break
+  }
+}
+j
+```
+
+```{r}
+FDR = c()
+POWER = c()
+ARL = c()
+```
+
+
+```{r}
+FDR = c()
+POWER = c()
+ARL = c()
+delta = 1
+for (k in 1:100){
+  print(k)
+  j = 0
+  sam = sample(30,6)
+  while (TRUE){
+    omega = rnorm(30,mean=0,sd=1)
+    nu = rnorm(30,mean=0,sd=1)
+    x0 = rnorm(1,mean=a0,sd=tau)
+    x = c()
+    y = c()
+    for (i in 1:30){
+      if (i %in% sam){
+        x = c(x,x0 + omega[i] + delta)
+      } else{
+        x = c(x,x0 + omega[i])
+      }
+      y = c(y,x[i] + nu[i])
+      x0 = x[i]
+    }
+    
+    v = c(y[1] - 1*1*a0)
+    u = c(0)
+    W = c(1 + tau^2)
+    V = c(W[1] + 1)
+    e = c(v[1]/V[1])
+    G = c(W[1]/V[1])
+    
+    for (i in 2:30){
+      W = c(W, W[i-1] - W[i-1]*G[i-1] + 1)
+      u = c(u, u[i-1] + G[i-1]*v[i-1])
+      V = c(V, W[i] + 1)
+      G = c(G, W[i]/V[i])
+      v = c(v, y[i] - u[i])
+      e = c(e, v[i]/sqrt(V[i]))
+    }
+    p = 2*(1-pnorm(abs(e)))
+    alpha = 0.0015
+    r1 = sum(p.adjust(p,"BH")<alpha)
+    alpha = alpha*30/(30-r1)
+    rej = which(p.adjust(p,"BH")<alpha)
+    # fdr = sum(rej %in% sam==FALSE)/length(rej)
+    # FDR = c(FDR,fdr)
+    j = j + 1
+    if ((length(rej)!=0)|(j==700)){
+    # if (length(rej)!=0){
+      fdr = sum(rej %in% sam==FALSE)/length(rej)
+      FDR = c(FDR,fdr)
+      power = sum(rej %in% sam)/length(sam)
+      POWER = c(POWER,power)
+      ARL = c(ARL,j)
+      break
+    }
+  }
+}
+
+```
+
+```{r}
+FDR[is.nan(FDR)] = 0
+mean(FDR)
+mean(POWER)
+mean(ARL)
+```
+
+
+
+
+
+
+
+
+## knockoff
+```{r}
+FDR = c()
+POWER = c()
+delta = 1
+
+for (k in 1:100){
+  j = 0
+  sam = sample(30,6)
+  while (TRUE){
+    omega = rnorm(30,mean=0,sd=1)
+    nu = rnorm(30,mean=0,sd=1)
+    x0 = rnorm(1,mean=a0,sd=tau)
+    x = c()
+    y = c()
+    for (i in 1:30){
+      if (i %in% sam){
+        x = c(x,x0 + omega[i] + delta)
+      } else{
+        x = c(x,x0 + omega[i])
+      }
+      y = c(y,x[i] + nu[i])
+      x0 = x[i]
+    }
+    
+    v = c(y[1] - 1*1*a0)
+    u = c(0)
+    W = c(1 + tau^2)
+    V = c(W[1] + 1)
+    e = c(v[1]/V[1])
+    G = c(W[1]/V[1])
+    
+    for (i in 2:30){
+      W = c(W, W[i-1] - W[i-1]*G[i-1] + 1)
+      u = c(u, u[i-1] + G[i-1]*v[i-1])
+      V = c(V, W[i] + 1)
+      G = c(G, W[i]/V[i])
+      v = c(v, y[i] - u[i])
+      e = c(e, v[i]/sqrt(V[i]))
+    }
+    p = 2*(1-pnorm(abs(e)))
+    alpha = 0.0015
+    r1 = sum(p.adjust(p,"BH")<alpha)
+    alpha = alpha*30/(30-r1)
+    rej = which(p.adjust(p,"BH")<alpha)
+    # fdr = sum(rej %in% sam==FALSE)/length(rej)
+    # FDR = c(FDR,fdr)
+    j = j + 1
+    # if ((length(rej)!=0)|(j==700)){
+    if (length(rej)!=0){
+      # fdr = sum(rej %in% sam==FALSE)/length(rej)
+      # FDR = c(FDR,fdr)
+      # power = sum(rej %in% sam)/length(sam)
+      # POWER = c(POWER,power)
+      # ARL = c(ARL,j)
+      # cat(fdr,"\n",power,"\n",j)
+      rej = knockoff(e)
+      
+      fdr = sum(rej %in% sam==FALSE)/length(rej)
+      FDR = c(FDR,fdr)
+      power = sum(rej %in% sam)/length(sam)
+      POWER = c(POWER,power)
+      break
+    }
+  }
+}
+```
+
+```{r}
+FDR[is.nan(FDR)] = 0
+mean(FDR)
+mean(POWER)
+```
+
+
+
+
+
+```{r}
+knockoff = function(e,alpha=0.1){
+  e_ = rnorm(30,mean=0,sd=1)
+  W = e - e_
+  t0 = sort(abs(W))
+  for (t in t0){
+    # print(t)
+    Sp = sum(W > t)
+    Sm = sum(W < -t)
+    FDRhat = (1+Sm)/max(1,Sp)
+    if (FDRhat < alpha){
+      break
+    }
+    rej = which(W >= t)
+  }
+  return(rej)
+}
+
+
+```
+
