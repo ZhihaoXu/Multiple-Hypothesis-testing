@@ -93,7 +93,7 @@ simulate_topr_Dummy = function(topr,mu,Sigma=0,r=10,a=46.55){
 knockoff1 = function(topr,mu=rep(0,100),Sigma=0,alpha=0.2){
   null = simulate_topr_Dummy(topr,mu=mu,Sigma=Sigma,r=10,a=46.55)
   
-  W = topr$allW[,t0] - null$W
+  W = topr$allW[,null$t0] - null$W
   t0 = c(sort(abs(W)),100)
   for (t in t0){
     Sp = sum(W >= t)
