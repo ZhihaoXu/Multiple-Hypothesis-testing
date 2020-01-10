@@ -1,0 +1,288 @@
+---
+title: "multistage"
+author: "Xu Zhihao"
+date: "12/23/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+twoStageStepUp = function(e,alpha=0.1){
+  p = 2*(1-pnorm(abs(e)))
+  alpha = alpha / (1 + alpha)
+  r1 = sum(p.adjust(p,"BH")<alpha)
+  alpha = alpha*length(e)/(length(e)-r1)
+  rej = which(p.adjust(p,"BH")<alpha)
+  return(rej)
+}
+
+generateE = function(N,sam,delta){
+  # delta = delta[sample(length(sam))]
+  omega = rnorm(N,mean=0,sd=1)
+  nu = rnorm(N,mean=0,sd=1)
+  x0 = rnorm(1,mean=0,sd=1)
+  x = rep(0,N)
+  y = rep(0,N)
+  idx = 1
+  for (i in 1:N){
+    if (i %in% sam){
+      x[i] = x0 + omega[i] + delta[idx]
+      idx = idx + 1
+    } else{
+      x[i] = x0 + omega[i]
+    }
+    y[i] = x[i] + nu[i]
+    x0 = x[i]
+  }
+  
+  v = rep(0,N);u=rep(0,N)
+  W = rep(0,N);V=rep(0,N)
+  e = rep(0,N);G=rep(0,N)
+  
+  v[1] = y[1] - 1*1*0;u[1] = 0
+  W[1] = 1 + 1^2;V[1] = W[1] + 1
+  e[1] = v[1]/V[1];G[1] = W[1]/V[1]
+  
+  for (i in 2:N){
+    W[i] = W[i-1] - W[i-1]*G[i-1] + 1
+    u[i] = u[i-1] + G[i-1]*v[i-1]
+    V[i] = W[i] + 1
+    G[i] = W[i]/V[i]
+    v[i] = y[i] - u[i]
+    e[i] = v[i]/sqrt(V[i])
+  }
+  return(list(e=e,y=y))
+}
+```
+
+```{r}
+N = 1000
+mu = rep(0,N)
+Sigma = matrix(c(rep(c(rep(0,N),-1),N-1),0),N,byrow=T)
+Sigma = Sigma + t(Sigma)
+diag(Sigma) = 3
+max.d = rep(0,100)
+for (k in 1:100){
+  max.d[k] = max(mvrnorm(n=1,mu = mu,Sigma = Sigma))
+}
+```
+
+
+```{r}
+library(MASS)
+# library(mvnfast)
+generateD = function(d,mud){
+  N = length(d)
+  Sigma = matrix(c(rep(c(rep(0,N),-1),N-1),0),N,byrow=T)
+  Sigma = Sigma + t(Sigma)
+  diag(Sigma) = 3
+  
+  s = rep(2*min(eigen(Sigma)$values),N)
+  muk = (Sigma - diag(s)) %*% solve(Sigma) %*% (d - mud)
+  Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
+  d_ = mvrnorm(n=1,mu = muk,Sigma = Sigmak)
+  # d_ = rmvn(n=1,mu = muk,sigma = Sigmak,ncores = 3)
+  return(d_)
+}
+knockoff2 = function(d,d_,alpha=0.1){
+  # d_ = generateD(d,mud)
+  
+  W = d - d_
+  t0 = c(sort(abs(W)),100)
+  for (t in t0){
+    Sp = sum(W >= t)
+    Sm = sum(W <= -t)
+    FDRhat = (1+Sm)/max(1,Sp)
+    # print(FDRhat)
+    if (FDRhat <= alpha){
+      break
+    }
+  }
+  t
+  rej = which(W >= t)
+  return(rej)
+}
+fdrPower = function(rej,sam){
+  fdr = sum(rej %in% sam==FALSE)/length(rej)
+  power = sum(rej %in% sam)/length(sam)
+  return(list(fdr=fdr,power=power))
+}
+```
+
+
+
+
+```{r}
+quan = function(d,a=0.2){
+  d = sort(d)
+  return(d[length(d)*(1-a)])
+}
+
+library(tcltk2)
+pb <- tkProgressBar("进度","已完成 %", 0, 100)
+N = 100
+size=100
+Alld = c()
+for (k in 1:size){
+  D = c();j = 0
+  sam = sample(N,0)
+  while (j<1000){
+    g = generateE(N,sam,delta=delta)
+    e = g$e;y = g$y
+    j = j + 1
+
+    d = y - c(0,y[1:N-1])
+    D = cbind(D,d)
+  }
+  dhat =  apply(D,1,cumsum)/seq(1,1000)
+  dhatmax = apply(dhat,1,quan,a=0.1)
+  Alld = rbind(Alld,dhatmax)
+  
+  info<- sprintf("已完成 %d%%", round(k*100/size))
+  setTkProgressBar(pb, k*100/size, sprintf("进度 (%s)", info),info)
+}
+close(pb)
+# d_threshold = apply(Alld,2,quan)
+d_threshold = apply(Alld,2,mean)
+```
+
+
+
+
+```{r}
+simulate_kf = function(N,delta,q=0.2,size=100){
+  FDR = c();POWER = c();FDR2 = c();POWER2 = c();ARL = c();
+  FDR3 = c();POWER3=c();FDR4 = c();POWER4=c()
+  delta = delta[sample(length(delta))]
+  library(tcltk2)
+  pb <- tkProgressBar("进度","已完成 %", 0, 100)
+  for (k in 1:size){
+    D = c();j = 0;E = c()
+    sam = sample(N,length(delta))
+    while (TRUE){
+      g = generateE(N,sam,delta=delta)
+      e = g$e;y = g$y
+      rej2 = twoStageStepUp(e,alpha=0.002)
+      j = j + 1
+  
+      d = y - c(0,y[1:N-1])
+      D = cbind(D,d)
+      E = cbind(E,e)
+  
+      if (length(rej2)!=0){
+        r = fdrPower(rej2,sam)
+        FDR2 = c(FDR2,r$fdr)
+        POWER2 = c(POWER2,r$power)
+        ARL = c(ARL,j)
+        
+        # Apply BH on e
+        e_ = apply(E,1,mean)
+        p3 = 2*(1-pnorm(abs(e_),mean=0,sd=1/sqrt(j)))
+        rej3 = which(p.adjust(p3,"BH") < q)
+        
+        r = fdrPower(rej3,sam)
+        FDR3 = c(FDR3,r$fdr)
+        POWER3 = c(POWER3,r$power)
+        break
+      }
+    }
+    
+    if (j <=1000){
+      thresh = d_threshold[j]
+    } else{
+      thresh = d_threshold[1000]
+    }
+  
+    mud = apply(D,1,mean)
+    mud[mud<=0] = 0
+    
+    # mud = rep(0,N)
+    # mud[sam] = delta
+    
+    Ddummy = apply(D,2,generateD,mud=mud)
+    mudbar = apply(D,1,mean)
+    mudtilde = apply(Ddummy,1,mean)
+    rej = knockoff2(mudbar,mudtilde,alpha=q)
+    r = fdrPower(rej,sam)
+    FDR = c(FDR,r$fdr)
+    POWER = c(POWER,r$power)
+    
+    # Apply BH on d
+    p4 = 1 - pnorm(mudbar,mean=0,sd=sqrt(3/j))
+    rej4 = which(p.adjust(p4,"BY") < q)
+    r = fdrPower(rej4,sam)
+    FDR4 = c(FDR4,r$fdr)
+    POWER4 = c(POWER4,r$power)
+    
+    info<- sprintf("已完成 %d%%", round(k*100/size))
+    setTkProgressBar(pb, k*100/size, sprintf("进度 (%s)", info),info)
+  }
+  close(pb)
+  return(list(FDR = FDR,POWER = POWER,
+              FDR2 = FDR2,POWER2 =POWER2,ARL = ARL,
+              FDR3 = FDR3,POWER3=POWER3,
+              FDR4 = FDR4,POWER4=POWER4))
+}
+```
+
+```{r}
+output = function(kf){
+  kf$FDR[is.nan(kf$FDR)] = 0
+  kf$FDR2[is.nan(kf$FDR2)] = 0
+  kf$FDR3[is.nan(kf$FDR3)] = 0
+  cat("Knockoff:\n")
+  cat("FDR:",mean(kf$FDR),"  ")
+  cat("POWER:",mean(kf$POWER),"\n")
+  
+  cat("FDR-Adjusted:\n")
+  cat("FDR:",mean(kf$FDR2),"  ")
+  cat("POWER:",mean(kf$POWER2),"  ")
+  cat("ARL:",mean(kf$ARL),"\n")
+  
+  cat("BH on e:\n")
+  cat("FDR:",mean(kf$FDR3),"  ")
+  cat("POWER:",mean(kf$POWER3),"\n")
+}
+```
+
+
+```{r}
+N = 100
+delta = c(rep(3,10))
+kf = simulate_kf(N,delta,q=0.2,size=100)
+output(kf)
+```
+
+
+```{r}
+# knockoff
+kf$FDR[is.nan(kf$FDR)] = 0
+mean(kf$FDR)
+mean(kf$POWER)
+```
+
+```{r}
+# FDR adjusted
+kf$FDR2[is.nan(kf$FDR2)] = 0
+mean(kf$FDR2)
+mean(kf$POWER2)
+mean(kf$ARL)
+```
+
+```{r}
+# BH on e
+kf$FDR3[is.nan(kf$FDR3)] = 0
+mean(kf$FDR3)
+mean(kf$POWER3)
+```
+
+
+```{r}
+# BH on d
+kf$FDR4[is.nan(kf$FDR4)] = 0
+mean(kf$FDR4)
+mean(kf$POWER4)
+```

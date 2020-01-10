@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(MASS)
 f = function(x){
   return(dnorm(x,mean=0,sd=1))
 }
@@ -18,14 +19,18 @@ g = function(x){
 }
 
 # index: the affected censor, K: the number of all the censors
-generateN = function(mu){
-  column = rnorm(100,mean=mu,sd=1)
-  return(as.matrix(column))
+generateN = function(mu,Sigma=0){
+  if (length(Sigma)==1){
+    column = rnorm(length(mu),mean=mu,sd=1)
+  } else {
+    column = mvrnorm(n=1,mu=mu,Sigma=Sigma)
+  }
+  return(column)
 }
 
 # n = number of infected censor, K = Number of Censor
-simulate_topr = function(n,r=10,a=46.55){
-  mu = c(rep(0.5,n),rep(0,100-n))
+simulate_topr = function(n,mug=0.5,Sigma=0,r=10,a=46.55){
+  mu = c(rep(mug,n),rep(0,100-n))
   W = rep(0,100)
   m = 0
   data = c()
@@ -33,170 +38,34 @@ simulate_topr = function(n,r=10,a=46.55){
   
   while (TRUE) {
     m = m + 1
-    data=cbind(data,generateN(mu))
+    data=cbind(data,generateN(mu,Sigma))
+    
     W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
     allW = cbind(allW,W)
-    w = sort(W,decreasing = TRUE)[1:r]
-    r.index = sort(W,decreasing = TRUE,index.return =TRUE)$ix[1:r]
+    
+    s = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = s$x[1:r]
+    r.index = s$ix[1:r]
     t = sum(w)
+    # cat(m,"\t",t,"\n")
     if (t > a){
       break
     }
   }
   # data: the whole dataset, n: stopping time, 
   # W: the vector of all the W statistic, r.index: selected index
-  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index)
+  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index,sig=n,mug=mug)
   return(result)
 }
 
-# t = Stopping time T, K = Number of censor
-simulate_topr_GlobalNull = function(t,mu,r=10,a=46.55){
-  W = rep(0,100)
-  m = 0
-  data = c()
-  for (i in 1:t){
-    m = m + 1
-    data=cbind(data,generateN(mu))
-    W = W + log(g(data[,m])/f(data[,m]))
-    W = ifelse(W>0,W,0)
-    w = sort(W,decreasing = TRUE)[1:r]
-    r.index = sort(W,decreasing = TRUE,index.return =TRUE)$ix[1:r]
-    t0 = sum(w)
-    if (t0 > a){
-      break
-    }
-  }
-  result <- list(data=data,eStop=m,n=t0,W=W,r.index = r.index)
-  return(result)
-}
-
-
-simulate_topr_GlobalNull_B = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
-  indicator = c()
-  for (i in 1:B){
-    Wr = simulate_topr_GlobalNull(topr$StopT,mu, r = 10, a = 46.55)
-    index = Wr$r.index[which(Wr$r.index %in% rejIndex==FALSE)]
-    W0 = Wr$W[index]
-    
-    indicator = c(indicator, ifelse(W0>topr$allW[tindex,Wr$eStop],1,0))
-  }
-  return(indicator)
-}
-
-simulate_topr_KnockoffGlobalNull_B = function(topr,mu,rejIndex,tindex,r=10,B = 500,a = 46.55){
-  indicator = c()
-  W_ = c()
-  St = c()
-  for (i in 1:B){
-    Wr = simulate_topr_GlobalNull(topr$StopT,mu, r = 10, a = 46.55)
-    index = Wr$r.index[which(Wr$r.index %in% rejIndex==FALSE)]
-    W0 = Wr$W[index]
-    W_ = c(W_,W0)
-    St = c(St,Wr$eStop)
-    W0 = matrix(rep(W0,length(tindex)),length(tindex),byrow = TRUE)
-    ind = ifelse(W0 > topr$allW[tindex,Wr$eStop],1,0)
-    # if (1 %in% ind[1,]){
-    #   break
-    # }
-    indicator = cbind(indicator, ind)
-  }
-  return(indicator)
-}
 ```
 
-
-
-
-
-```{r}
-knockoff = function(topr,q0){
-  # FDR = c()
-  # FPR = c()
-  # POWER = c()
-  # q0 = 0.25
-  muNull = rep(0,100)
-  null = simulate_topr_GlobalNull(topr$StopT,mu=muNull,r=10,a=46.55)
-  
-  W = topr$W - null$W
-  for (t in seq(0,10,0.01)){
-    Spt = sum(W> t)
-    Smt = sum(W<(-t))
-    q = (1 + Smt)/Spt
-    if (q <= q0){
-      break
-    } else if (t == 10){
-      t = 1000
-    }
-  }
-  
-  reject_index = which(W > t)
-  return(reject_index)
-}
-```
-
-  
-
-```{r}
-library(tcltk2) 
-FDR=c()
-POWER=c()
-
-pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 200
-
-sig=5
-for (i in 1:size){
-  topr = simulate_topr(n=sig)
-  KF = knockoff(topr,q0=0.1)
-  
-  fdr = sum((KF %in% 1:sig)==FALSE)/length(KF)
-  FDR = c(FDR,fdr)
-  
-  power = sum(KF %in% 1:sig)/sig
-  POWER = c(POWER,power)
-  
-  info<- sprintf("已完成 %d%%", round(i*100/size))  
-  setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
-}
-close(pb)
-```
-
-
-```{r}
-FDR[is.nan(FDR )] = 0
-mean(FDR)
-mean(POWER)
-FWER = sum(FDR>0)/length(FDR)
-mean(FWER)
-```
-
-
-Knockoff
-
-  | # affected | $\mu$ | $\mu_g$ |  $q$  |  FDR  |  POWER  | FWER  |
-  | :--------: | :---: | :-----: | :---: | :---: | :-----: | :---: |
-  |      5     |  0.5  |   0.5   |  0.1  | 0.017 |  0.025  | 0.029 |
-  |      5     |  0.5  |   0.5   |  0.2  | 0.137 |  0.364  | 0.35  |
-  |      10    |  0.5  |   0.5   |  0.1  | 0.024 |  0.050  | 0.065 |
-  |      10    |  0.5  |   0.5   |  0.2  | 0.171 |  0.422  | 0.535 |
-  |      20    |  0.5  |   0.5   |  0.1  | 0.062 |  0.202  | 0.325 |
-  |      20    |  0.5  |   0.5   |  0.2  | 0.170 |  0.491  | 0.73  | 
-  
-  |      5     |  0.3  |   0.5   |  0.1  | 0.010 |  0.01   | 0.015 |
-  |      5     |  0.3  |   0.5   |  0.2  | 0.155 |  0.235  | 0.32  |
-  |      10    |  0.3  |   0.5   |  0.1  | 0.025 |  0.031  | 0.055 |
-  |      10    |  0.3  |   0.5   |  0.2  | 0.159 |  0.252  | 0.45  |
-  |      20    |  0.3  |   0.5   |  0.1  | 0.032 |  0.047  | 0.11  |
-  |      20    |  0.3  |   0.5   |  0.2  | 0.162 |  0.267  | 0.585 | 
-  
-  
-  
   
   
   
 ```{r}
-sig=5
+sig=5;q=0.2
 topr = simulate_topr(n=sig)
 fdrTopr = sum((topr$r.index %in% 1:sig)==FALSE)/length(topr$r.index)
 powerTopr = sum(topr$r.index %in% 1:sig)/sig
@@ -234,12 +103,17 @@ FDRBhAll=c()
 POWERBhAll=c()
 
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 200
+size = 100
 
-sig=1
+sig=5
 q=0.2
 for (i in 1:size){
-  topr = simulate_topr(n=sig)
+  rho = -0.5
+  Sigma = matrix(rep(rho,100*100),100)
+  diag(Sigma) = 1
+  topr = simulate_topr(n=sig,mug=0.5,Sigma=Sigma)
+  
+  # topr = simulate_topr(n=sig,mug=0.5)
 
   fdrTopr = sum((topr$r.index %in% 1:sig)==FALSE)/length(topr$r.index)
   powerTopr = sum(topr$r.index %in% 1:sig)/sig
@@ -255,7 +129,7 @@ for (i in 1:size){
   p = cbind(p,p_bh)
   fdrBhSelect = sum((p[,3]<q)&(p[,1] %in% seq(1,sig) == FALSE))/sum(p[,3]<q)
   powerBhSelect = sum((p[,3]<q)&(p[,1] %in% seq(1,sig)))/sig
-  
+
   FDRBhSelect = c(FDRBhSelect,fdrBhSelect)
   POWERBhSelect = c(POWERBhSelect,powerBhSelect)
   
@@ -285,15 +159,14 @@ close(pb)
 mean(FDRTopr)
 mean(POWERTopr)
 
-mean(FDRBhSelect)
-mean(POWERBhSelect)
-FWERSelect = sum(FDRBhSelect>0)/length(FDRBhSelect)
-FWERSelect
+# mean(FDRBhSelect)
+# mean(POWERBhSelect)
+# FWERSelect = sum(FDRBhSelect>0)/length(FDRBhSelect)
+# FWERSelect
 
+FDRBhAll[is.nan(FDRBhAll)] = 0
 mean(FDRBhAll)
 mean(POWERBhAll)
-FWERBhAll = sum(FDRBhAll>0)/length(FDRBhAll)
-FWERBhAll
 ```
 
 
@@ -331,5 +204,32 @@ Normal + BH on all
   
   
   
+  
+  
+  
+```{r}
+FDR0 = c()
+
+pb <- tkProgressBar("进度","已完成 %", 0, 100)
+size = 100
+
+q=0.2
+for (i in 1:size){
+  topr = simulate_topr(n=1,mug=0.8)
+  # bh on all
+  meanX = apply(topr$data,1,mean)
+  p = 1 - pnorm(meanX,mean=0,sd=1/sqrt(topr$StopT))
+  p_bh = p.adjust(p,method = "BH")
+  if (sum(p_bh<q)>0){
+    FDR0 = c(FDR0,1)
+  } else{
+    FDR0 = c(FDR0,0)
+  }
+  
+  info<- sprintf("已完成 %d%%", round(i*100/size))  
+  setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+}
+close(pb)
+```
   
   
