@@ -18,8 +18,7 @@ twoStageStepUp = function(e,alpha=0.1){
   rej = which(p.adjust(p,"BH")<alpha)
   return(rej)
 }
-
-generateE = function(N,sam,delta){
+generateY = function(N,sam,delta){
   # delta = delta[sample(length(sam))]
   omega = rnorm(N,mean=0,sd=1)
   nu = rnorm(N,mean=0,sd=1)
@@ -37,7 +36,10 @@ generateE = function(N,sam,delta){
     y[i] = x[i] + nu[i]
     x0 = x[i]
   }
-  
+  return(y)
+}
+
+generateE_ = function(y){
   v = rep(0,N);u=rep(0,N)
   W = rep(0,N);V=rep(0,N)
   e = rep(0,N);G=rep(0,N)
@@ -54,6 +56,11 @@ generateE = function(N,sam,delta){
     v[i] = y[i] - u[i]
     e[i] = v[i]/sqrt(V[i])
   }
+  return(e)
+}
+generateE = function(N,sam,delta){
+  y = generateY(N,sam,delta)
+  e = generateE_(y)
   return(list(e=e,y=y))
 }
 ```
@@ -85,7 +92,9 @@ generateD = function(d,mud){
   Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
   d_ = mvrnorm(n=1,mu = muk,Sigma = Sigmak)
   # d_ = rmvn(n=1,mu = muk,sigma = Sigmak,ncores = 3)
-  return(d_)
+  y_ = cumsum(d_)
+  e_ = generateE_(y_)
+  return(c(d_,e_))
 }
 knockoff2 = function(d,d_,alpha=0.1){
   # d_ = generateD(d,mud)
@@ -149,6 +158,11 @@ close(pb)
 d_threshold = apply(Alld,2,mean)
 ```
 
+```{r}
+sd = sqrt(3/c(1:1000))
+d_threshold = qnorm(0.9,mean=0,sd=sd)
+```
+
 
 
 
@@ -190,11 +204,11 @@ simulate_kf = function(N,delta,q=0.2,size=100){
       }
     }
     
-    if (j <=1000){
-      thresh = d_threshold[j]
-    } else{
-      thresh = d_threshold[1000]
-    }
+    # if (j <=1000){
+    #   thresh = d_threshold[j]
+    # } else{
+    #   thresh = d_threshold[1000]
+    # }
   
     mud = apply(D,1,mean)
     mud[mud<=0] = 0
@@ -203,8 +217,18 @@ simulate_kf = function(N,delta,q=0.2,size=100){
     # mud[sam] = delta
     
     Ddummy = apply(D,2,generateD,mud=mud)
-    mudbar = apply(D,1,mean)
-    mudtilde = apply(Ddummy,1,mean)
+    Edummy = matrix(Ddummy[c((N+1):(2*N)),],nrow=N)
+    Ddummy = matrix(Ddummy[1:N,],nrow=N)
+    
+    for (i in 1:j){
+      reji = twoStageStepUp(Edummy[,i],alpha=0.002)
+      if (length(reji)>0){
+        break
+      }
+    }
+    
+    mudbar = apply(matrix(D[,1:i],nrow=N),1,mean)
+    mudtilde = apply(matrix(Ddummy[,1:i],nrow=N),1,mean)
     rej = knockoff2(mudbar,mudtilde,alpha=q)
     r = fdrPower(rej,sam)
     FDR = c(FDR,r$fdr)
@@ -251,10 +275,14 @@ output = function(kf){
 
 ```{r}
 N = 100
-delta = c(rep(3,10))
+delta = c(rep(0.5,5))
 kf = simulate_kf(N,delta,q=0.2,size=100)
 output(kf)
 ```
+
+
+
+
 
 
 ```{r}

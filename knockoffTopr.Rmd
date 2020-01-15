@@ -12,8 +12,8 @@ library(MASS)
 f = function(x){
   return(dnorm(x,mean=0,sd=1))
 }
-g = function(x){
-  return(dnorm(x,mean=0.5,sd=1))
+g = function(x,muw=0.5){
+  return(dnorm(x,mean=muw,sd=1))
 }
 
 # index: the affected censor, K: the number of all the censors
@@ -27,9 +27,9 @@ generateN = function(mu,Sigma=0){
 }
 
 # n = number of infected censor, K = Number of Censor
-simulate_topr = function(n,mug=0.5,Sigma=0,r=10,a=46.55){
-  mu = c(rep(mug,n),rep(0,100-n))
-  W = rep(0,100)
+simulate_topr = function(n,mug=0.5,muw=0.5,Sigma=0,r=10,a=46.55,N=100){
+  mu = c(rep(mug,n),rep(0,N-n))
+  W = rep(0,N)
   m = 0
   data = c()
   allW = c()
@@ -38,7 +38,7 @@ simulate_topr = function(n,mug=0.5,Sigma=0,r=10,a=46.55){
     m = m + 1
     data=cbind(data,generateN(mu,Sigma))
     
-    W = W + log(g(data[,m])/f(data[,m]))
+    W = W + log(g(data[,m],muw = muw)/f(data[,m]))
     W = ifelse(W>0,W,0)
     allW = cbind(allW,W)
     
@@ -53,19 +53,21 @@ simulate_topr = function(n,mug=0.5,Sigma=0,r=10,a=46.55){
   }
   # data: the whole dataset, n: stopping time, 
   # W: the vector of all the W statistic, r.index: selected index
-  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index,sig=n,mug=mug)
+  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index,sig=n,mug=mug,muw=muw,N=N,r=r,a=a)
   return(result)
 }
 
 # t = Stopping time T, K = Number of censor
 simulate_topr_Dummy = function(topr,mu,Sigma=0,r=10,a=46.55){
-  W = rep(0,100)
+  W = rep(0,topr$N)
   if (length(Sigma)==1){
-    data = matrix(generateN(rep(mu,topr$StopT),Sigma=0),nrow=100,byrow=FALSE)
+    data = matrix(generateN(rep(mu,topr$StopT),Sigma=0),nrow=topr$N,byrow=FALSE)
   } else {
     Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
     data = c()
     for (j in 1:topr$StopT){
+      # x_ = rep(0,topr$N)
+      # x_[topr$r.index] = topr$data[,j][topr$r.index]
       muk = (Sigma - diag(s))%*%solve(Sigma)%*%topr$data[,j]
       data = cbind(data,generateN(mu=muk,Sigma=Sigmak))
     }
@@ -73,7 +75,7 @@ simulate_topr_Dummy = function(topr,mu,Sigma=0,r=10,a=46.55){
   
   for (i in 1:topr$StopT){
     
-    W = W + log(g(data[,i])/f(data[,i]))
+    W = W + log(g(data[,i],muw=topr$muw)/f(data[,i]))
     W = ifelse(W>0,W,0)
   
     s = sort(c(W,topr$allW[,i]),decreasing = TRUE,index.return =TRUE)
@@ -90,11 +92,14 @@ simulate_topr_Dummy = function(topr,mu,Sigma=0,r=10,a=46.55){
 
 
 ```{r}
-knockoff1 = function(topr,mu=rep(0,100),Sigma=0,alpha=0.2){
-  null = simulate_topr_Dummy(topr,mu=mu,Sigma=Sigma,r=10,a=46.55)
+knockoff1 = function(topr,mu,Sigma=0,alpha=0.2){
+  mu=rep(0,topr$N)
+  null = simulate_topr_Dummy(topr,mu=mu,Sigma=Sigma,r=topr$r,a=topr$a)
   
   W = topr$allW[,null$t0] - null$W
-  t0 = c(sort(abs(W)),100)
+  # W = apply(topr$data[,1:null$t0],1,mean) - apply(null$data,1,mean)
+  
+  t0 = c(sort(abs(W)),1000)
   for (t in t0){
     Sp = sum(W >= t)
     Sm = sum(W <= -t)
@@ -115,19 +120,19 @@ knockoff1 = function(topr,mu=rep(0,100),Sigma=0,alpha=0.2){
 ```{r}
 library(tcltk2)
 rho = 0.8
-Sigma = matrix(rep(rho,100*100),100)
+Sigma = matrix(rep(rho,N*N),N)
 diag(Sigma) = 1
-s = rep(min(c(2*min(eigen(Sigma)$values),1)),100)
+s = rep(min(c(2*min(eigen(Sigma)$values),1)),N)
 Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
 
 FDR = c()
 POWER = c()
-sig = 20
+sig = 10
 
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
 size=100
-for (k in 1:100){
-  topr = simulate_topr(n=sig,mug=0.8,Sigma=Sigma)
+for (k in 1:size){
+  topr = simulate_topr(n=sig,mug=0.3,muw=0.5,Sigma=0,N=1000,r=100,a=200)
   
   rej = knockoff1(topr,mu=muk,Sigma = Sigma,alpha=0.2)
   FDR = c(FDR,sum(rej %in% seq(1:sig)==FALSE)/length(rej))
@@ -152,15 +157,15 @@ mean(POWER)
 ```{r}
 FDR = c()
 POWER = c()
-sig = 20
+sig = 10
 
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size=1000
+size=100
 for (k in 1:size){
-  topr = simulate_topr(n=sig,mug=0.8,Sigma=0)
-  rej = knockoff1(topr,alpha=0.2)
-  FDR = c(FDR,sum(rej %in% seq(1:sig)==FALSE)/length(rej))
-  POWER = c(POWER,sum(rej %in% seq(1:sig))/length(seq(1:sig)))
+  topr = simulate_topr(n=sig,mug=0.8,muw=0.5,Sigma=0,N=1000,r=10,a=35)
+  rej = knockoff1(topr,alpha=0.3)
+  FDR = c(FDR,sum(rej %in% seq(0:sig)==FALSE)/length(rej))
+  POWER = c(POWER,sum(rej %in% seq(0:sig))/sig)
   
   info<- sprintf("已完成 %d%%", round(k*100/size))
   setTkProgressBar(pb, k*100/size, sprintf("进度 (%s)", info),info)
