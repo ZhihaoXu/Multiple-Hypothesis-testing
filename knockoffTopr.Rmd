@@ -63,11 +63,9 @@ simulate_topr_Dummy = function(topr,mu,Sigma=0,r=10,a=46.55){
   if (length(Sigma)==1){
     data = matrix(generateN(rep(mu,topr$StopT),Sigma=0),nrow=topr$N,byrow=FALSE)
   } else {
-    Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
+    # Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
     data = c()
     for (j in 1:topr$StopT){
-      # x_ = rep(0,topr$N)
-      # x_[topr$r.index] = topr$data[,j][topr$r.index]
       muk = (Sigma - diag(s))%*%solve(Sigma)%*%topr$data[,j]
       data = cbind(data,generateN(mu=muk,Sigma=Sigmak))
     }
@@ -92,12 +90,14 @@ simulate_topr_Dummy = function(topr,mu,Sigma=0,r=10,a=46.55){
 
 
 ```{r}
+library(Smisc)
 knockoff1 = function(topr,mu,Sigma=0,alpha=0.2){
   mu=rep(0,topr$N)
   null = simulate_topr_Dummy(topr,mu=mu,Sigma=Sigma,r=topr$r,a=topr$a)
   
-  W = topr$allW[,null$t0] - null$W
+  # W = topr$allW[,null$t0] - null$W
   # W = apply(topr$data[,1:null$t0],1,mean) - apply(null$data,1,mean)
+  W = apply(topr$data[,1:null$t0],1,cusum,k=0,h=1000)[null$t0,] - apply(null$data,1,cusum,k=0,h=1000)[null$t0,]
   
   t0 = c(sort(abs(W)),1000)
   for (t in t0){
@@ -119,7 +119,7 @@ knockoff1 = function(topr,mu,Sigma=0,alpha=0.2){
 
 ```{r}
 library(tcltk2)
-rho = 0.8
+rho = 0.8;N=250
 Sigma = matrix(rep(rho,N*N),N)
 diag(Sigma) = 1
 s = rep(min(c(2*min(eigen(Sigma)$values),1)),N)
@@ -127,16 +127,23 @@ Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
 
 FDR = c()
 POWER = c()
+POWERtopr = c()
+FDRtopr = c()
 sig = 10
 
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
 size=100
 for (k in 1:size){
-  topr = simulate_topr(n=sig,mug=0.3,muw=0.5,Sigma=0,N=1000,r=100,a=200)
+  topr = simulate_topr(n=sig,mug=0.5,muw=0.5,Sigma=Sigma,N=250,r=10,a=46.55)
   
-  rej = knockoff1(topr,mu=muk,Sigma = Sigma,alpha=0.2)
+  rej = knockoff1(topr,Sigma = Sigma,alpha=0.2)
   FDR = c(FDR,sum(rej %in% seq(1:sig)==FALSE)/length(rej))
   POWER = c(POWER,sum(rej %in% seq(1:sig))/length(seq(1:sig)))
+  
+  fdrTopr = sum((topr$r.index %in% 0:sig)==FALSE)/length(topr$r.index)
+  powerTopr = sum(topr$r.index %in% 0:sig)/sig
+  FDRtopr = c(FDRtopr,fdrTopr)
+  POWERtopr = c(POWERtopr,powerTopr)
   
   info<- sprintf("已完成 %d%%", round(k*100/size))
   setTkProgressBar(pb, k*100/size, sprintf("进度 (%s)", info),info)
@@ -146,6 +153,11 @@ close(pb)
 
 
 ```{r}
+cat("Topr:\n")
+FDRtopr[is.nan(FDRtopr)] = 0
+mean(FDRtopr)
+mean(POWERtopr)
+cat("Knockoff:\n")
 FDR[is.nan(FDR)] = 0
 mean(FDR)
 mean(POWER)
@@ -157,15 +169,22 @@ mean(POWER)
 ```{r}
 FDR = c()
 POWER = c()
-sig = 10
+POWERtopr = c()
+FDRtopr = c()
+sig = 15
 
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size=100
+size=1000
 for (k in 1:size){
-  topr = simulate_topr(n=sig,mug=0.8,muw=0.5,Sigma=0,N=1000,r=10,a=35)
-  rej = knockoff1(topr,alpha=0.3)
+  topr = simulate_topr(n=sig,mug=1.5,muw=0.5,Sigma=0,N=250,r=10,a=46.55)
+  rej = knockoff1(topr,alpha=0.2)
   FDR = c(FDR,sum(rej %in% seq(0:sig)==FALSE)/length(rej))
   POWER = c(POWER,sum(rej %in% seq(0:sig))/sig)
+  
+  fdrTopr = sum((topr$r.index %in% 0:sig)==FALSE)/length(topr$r.index)
+  powerTopr = sum(topr$r.index %in% 0:sig)/sig
+  FDRtopr = c(FDRtopr,fdrTopr)
+  POWERtopr = c(POWERtopr,powerTopr)
   
   info<- sprintf("已完成 %d%%", round(k*100/size))
   setTkProgressBar(pb, k*100/size, sprintf("进度 (%s)", info),info)
@@ -175,6 +194,11 @@ close(pb)
 
 
 ```{r}
+cat("Topr:\n")
+FDRtopr[is.nan(FDRtopr)] = 0
+mean(FDRtopr)
+mean(POWERtopr)
+cat("Knockoff:\n")
 FDR[is.nan(FDR)] = 0
 mean(FDR)
 mean(POWER)

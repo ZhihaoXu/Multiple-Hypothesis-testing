@@ -204,14 +204,14 @@ simulate_kf = function(N,delta,q=0.2,size=100){
       }
     }
     
-    # if (j <=1000){
-    #   thresh = d_threshold[j]
-    # } else{
-    #   thresh = d_threshold[1000]
-    # }
+    if (j <=1000){
+      thresh = d_threshold[j]
+    } else{
+      thresh = d_threshold[1000]
+    }
   
     mud = apply(D,1,mean)
-    mud[mud<=0] = 0
+    mud[mud<=thresh] = 0
     
     # mud = rep(0,N)
     # mud[sam] = delta
@@ -275,7 +275,7 @@ output = function(kf){
 
 ```{r}
 N = 100
-delta = c(rep(0.5,5))
+delta = c(rep(8,5))
 kf = simulate_kf(N,delta,q=0.2,size=100)
 output(kf)
 ```

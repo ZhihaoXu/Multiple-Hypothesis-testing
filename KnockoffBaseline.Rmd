@@ -105,7 +105,7 @@ POWERBhAll=c()
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
 size = 1000
 
-sig=0;N=1000
+sig=0;N=250
 q=0.2
 for (i in 1:size){
   # rho = -0.5
@@ -115,8 +115,8 @@ for (i in 1:size){
   
   topr = simulate_topr(n=sig,mug=0.5,muw=0.5,Sigma=0,N=N,r=10,a=46.55)
 
-  fdrTopr = sum((topr$r.index %in% 1:sig)==FALSE)/length(topr$r.index)
-  powerTopr = sum(topr$r.index %in% 1:sig)/sig
+  fdrTopr = sum((topr$r.index %in% 0:sig)==FALSE)/length(topr$r.index)
+  powerTopr = sum(topr$r.index %in% 0:sig)/sig
   
   FDRTopr = c(FDRTopr,fdrTopr)
   POWERTopr = c(POWERTopr,powerTopr)
