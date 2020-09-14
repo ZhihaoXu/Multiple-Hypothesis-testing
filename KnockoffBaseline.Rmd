@@ -29,9 +29,9 @@ generateN = function(mu,Sigma=0){
 }
 
 # n = number of infected censor, K = Number of Censor
-simulate_topr = function(n,mug=0.5,Sigma=0,r=10,a=46.55,N=100){
-  mu = c(rep(mug,n),rep(0,N-n))
-  W = rep(0,N)
+simulate_topr = function(mu,Sigma=0,r=10,a=46.55){
+  # mu = c(rep(mug,n),rep(0,N-n))
+  W = rep(0,length(mu))
   m = 0
   data = c()
   allW = c()
@@ -55,12 +55,23 @@ simulate_topr = function(n,mug=0.5,Sigma=0,r=10,a=46.55,N=100){
   }
   # data: the whole dataset, n: stopping time, 
   # W: the vector of all the W statistic, r.index: selected index
-  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index,sig=n,mug=mug,N=N,r=r,a=a)
+  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index,r=r,a=a)
   return(result)
 }
 
 ```
 
+```{r}
+N = 1000
+mu = c(rep(0.5,100),rep(0,N-100))
+rho = 0.5
+Sigma = matrix(rep(rho,N*N),N)
+diag(Sigma) = 1
+
+topr = simulate_topr(mu=mu,Sigma=0,r=10,a=46.55)
+```
+ 
+  
   
   
   
@@ -103,57 +114,60 @@ FDRBhAll=c()
 POWERBhAll=c()
 
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 1000
+size = 100
 
-sig=0;N=250
+sig=100;N=1000
 q=0.2
 for (i in 1:size){
-  # rho = -0.5
-  # Sigma = matrix(rep(rho,100*100),100)
-  # diag(Sigma) = 1
-  # topr = simulate_topr(n=sig,mug=0.5,Sigma=Sigma)
+  sam = sample(1000,100)
+  mu = rep(0,N)
+  mu[sam] = 0.5
+  # mu = c(rep(0.5,100),rep(0,N-100))
+  rho = 0.5
+  Sigma = matrix(rep(rho,N*N),N)
+  diag(Sigma) = 1
+  topr = simulate_topr(mu=mu,Sigma=0,r=100,a=46.55*8)
   
-  topr = simulate_topr(n=sig,mug=0.5,muw=0.5,Sigma=0,N=N,r=10,a=46.55)
+  errIdx = which(mu != 0)
 
-  fdrTopr = sum((topr$r.index %in% 0:sig)==FALSE)/length(topr$r.index)
-  powerTopr = sum(topr$r.index %in% 0:sig)/sig
+  fdrTopr = sum((topr$r.index %in% errIdx)==FALSE)/length(topr$r.index)
+  powerTopr = sum(topr$r.index %in% errIdx)/sig
   
   FDRTopr = c(FDRTopr,fdrTopr)
   POWERTopr = c(POWERTopr,powerTopr)
   
-  # bh on select
-  meanX = apply(topr$data,1,mean)[topr$r.index]
-  p = 1 - pnorm(meanX,mean=0,sd=1/sqrt(topr$StopT))
-  p = cbind(topr$r.index,p)
-  p_bh = p.adjust(p[,2],method = "BH")
-  p = cbind(p,p_bh)
-  fdrBhSelect = sum((p[,3]<q)&(p[,1] %in% seq(0,sig) == FALSE))/sum(p[,3]<q)
-  powerBhSelect = sum((p[,3]<q)&(p[,1] %in% seq(0,sig)))/sig
+  # # bh on select
+  # meanX = apply(topr$data,1,mean)[topr$r.index]
+  # p = 1 - pnorm(meanX,mean=0,sd=1/sqrt(topr$StopT))
+  # p = cbind(topr$r.index,p)
+  # p_bh = p.adjust(p[,2],method = "BH")
+  # p = cbind(p,p_bh)
+  # fdrBhSelect = sum((p[,3]<q)&(p[,1] %in% seq(0,sig) == FALSE))/sum(p[,3]<q)
+  # powerBhSelect = sum((p[,3]<q)&(p[,1] %in% seq(0,sig)))/sig
+  # 
+  # FDRBhSelect = c(FDRBhSelect,fdrBhSelect)
+  # POWERBhSelect = c(POWERBhSelect,powerBhSelect)
+  
+  
+  # # bh on all
+  # meanX = apply(topr$data,1,mean)
+  # p = 1 - pnorm(meanX,mean=0,sd=1/sqrt(topr$StopT))
+  # # p = (1 - pnorm(abs(meanX),mean=0,sd=1/sqrt(topr$StopT)))*2
+  # p = cbind(seq(1,N),p)
+  # p_bh = p.adjust(p[,2],method = "BH")
+  # p = cbind(p,p_bh)
+  # 
+  # # q0 = q / (1 + q)
+  # # r1 = sum(p_bh<=q0)
+  # # q0 = q0*length(p_bh)/(length(p_bh)-r1)
+  # q0 = q
+  # 
+  # fdrBhAll = sum((p[,3]<q0)&(p[,1] %in% seq(0,sig) == FALSE))/sum(p[,3]<q0)
+  # powerBhAll = sum((p[,3]<q0)&(p[,1] %in% seq(0,sig)))/sig
+  # 
+  # FDRBhAll = c(FDRBhAll,fdrBhAll)
+  # POWERBhAll = c(POWERBhAll,powerBhAll)
 
-  FDRBhSelect = c(FDRBhSelect,fdrBhSelect)
-  POWERBhSelect = c(POWERBhSelect,powerBhSelect)
-  
-  
-  # bh on all
-  meanX = apply(topr$data,1,mean)
-  p = 1 - pnorm(meanX,mean=0,sd=1/sqrt(topr$StopT))
-  # p = (1 - pnorm(abs(meanX),mean=0,sd=1/sqrt(topr$StopT)))*2
-  p = cbind(seq(1,N),p)
-  p_bh = p.adjust(p[,2],method = "BH")
-  p = cbind(p,p_bh)
-  
-  # q0 = q / (1 + q)
-  # r1 = sum(p_bh<=q0)
-  # q0 = q0*length(p_bh)/(length(p_bh)-r1)
-  q0 = q
-  
-  fdrBhAll = sum((p[,3]<q0)&(p[,1] %in% seq(0,sig) == FALSE))/sum(p[,3]<q0)
-  powerBhAll = sum((p[,3]<q0)&(p[,1] %in% seq(0,sig)))/sig
-  
-  FDRBhAll = c(FDRBhAll,fdrBhAll)
-  POWERBhAll = c(POWERBhAll,powerBhAll)
-  
-  
   info<- sprintf("已完成 %d%%", round(i*100/size))  
   setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
 }
@@ -166,13 +180,13 @@ close(pb)
 mean(FDRTopr)
 mean(POWERTopr)
 
-FDRBhSelect[is.nan(FDRBhSelect)] = 0
-mean(FDRBhSelect)
-mean(POWERBhSelect)
-
-FDRBhAll[is.nan(FDRBhAll)] = 0
-mean(FDRBhAll)
-mean(POWERBhAll)
+# FDRBhSelect[is.nan(FDRBhSelect)] = 0
+# mean(FDRBhSelect)
+# mean(POWERBhSelect)
+# 
+# FDRBhAll[is.nan(FDRBhAll)] = 0
+# mean(FDRBhAll)
+# mean(POWERBhAll)
 ```
 
 

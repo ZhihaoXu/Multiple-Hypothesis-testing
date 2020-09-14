@@ -1,0 +1,158 @@
+\begin{thebibliography}{24}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bagshaw and Johnson(1975)]{bagshaw1975influence}
+M.~Bagshaw and R.~A. Johnson.
+\newblock The influence of reference values and estimated variance on the arl
+  of cusum tests.
+\newblock \emph{Journal of the Royal Statistical Society: Series B
+  (Methodological)}, 37\penalty0 (3):\penalty0 413--420, 1975.
+
+\bibitem[Barber et~al.(2015)Barber, Cand{\`e}s, et~al.]{barber2015controlling}
+R.~F. Barber, E.~J. Cand{\`e}s, et~al.
+\newblock Controlling the false discovery rate via knockoffs.
+\newblock \emph{The Annals of Statistics}, 43\penalty0 (5):\penalty0
+  2055--2085, 2015.
+
+\bibitem[Barber et~al.(2019)Barber, Cand{\`e}s, et~al.]{barber2019knockoff}
+R.~F. Barber, E.~J. Cand{\`e}s, et~al.
+\newblock A knockoff filter for high-dimensional selective inference.
+\newblock \emph{The Annals of Statistics}, 47\penalty0 (5):\penalty0
+  2504--2537, 2019.
+
+\bibitem[Benjamini et~al.(2006)Benjamini, Krieger, and
+  Yekutieli]{benjamini2006adaptive}
+Y.~Benjamini, A.~M. Krieger, and D.~Yekutieli.
+\newblock Adaptive linear step-up procedures that control the false discovery
+  rate.
+\newblock \emph{Biometrika}, 93\penalty0 (3):\penalty0 491--507, 2006.
+
+\bibitem[Capizzi and Masarotto(2011)]{capizzi2011least}
+G.~Capizzi and G.~Masarotto.
+\newblock A least angle regression control chart for multidimensional data.
+\newblock \emph{Technometrics}, 53\penalty0 (3):\penalty0 285--296, 2011.
+
+\bibitem[Du and Zou(2018)]{du2018line}
+L.~Du and C.~Zou.
+\newblock On-line control of false discovery rates for multiple datastreams.
+\newblock \emph{Journal of Statistical Planning and Inference}, 194:\penalty0
+  1--14, 2018.
+
+\bibitem[Durbin and Koopman(2012)]{durbin2012time}
+J.~Durbin and S.~J. Koopman.
+\newblock \emph{Time series analysis by state space methods}.
+\newblock Oxford university press, 2012.
+
+\bibitem[Ing et~al.(2017)Ing, Lai, Shen, Tsang, and Yu]{ing2017multiple}
+C.-K. Ing, T.~L. Lai, M.~Shen, K.~Tsang, and S.-H. Yu.
+\newblock Multiple testing in regression models with applications to fault
+  diagnosis in the big data era.
+\newblock \emph{Technometrics}, 59\penalty0 (3):\penalty0 351--360, 2017.
+
+\bibitem[Jiang et~al.(2012)Jiang, Wang, and Tsung]{jiang2012variable}
+W.~Jiang, K.~Wang, and F.~Tsung.
+\newblock A variable-selection-based multivariate ewma chart for process
+  monitoring and diagnosis.
+\newblock \emph{Journal of Quality Technology}, 44\penalty0 (3):\penalty0
+  209--230, 2012.
+
+\bibitem[Li et~al.(2008)Li, Jin, and Shi]{li2008causation}
+J.~Li, J.~Jin, and J.~Shi.
+\newblock Causation-based $t^2$ decomposition for multivariate process
+  monitoring and diagnosis.
+\newblock \emph{Journal of Quality Technology}, 40\penalty0 (1):\penalty0
+  46--58, 2008.
+
+\bibitem[Li et~al.(2017)Li, Pu, Tsung, and Xiang]{li2017robust}
+W.~Li, X.~Pu, F.~Tsung, and D.~Xiang.
+\newblock A robust self-starting spatial rank multivariate ewma chart based on
+  forward variable selection.
+\newblock \emph{Computers \& Industrial Engineering}, 103:\penalty0 116--130,
+  2017.
+
+\bibitem[Li et~al.(2020)Li, Xiang, Tsung, and Pu]{li2020diagnostic}
+W.~Li, D.~Xiang, F.~Tsung, and X.~Pu.
+\newblock A diagnostic procedure for high-dimensional data streams via missed
+  discovery rate control.
+\newblock \emph{Technometrics}, 62\penalty0 (1):\penalty0 84--100, 2020.
+
+\bibitem[Li and Tsung(2009)]{li2009false}
+Y.~Li and F.~Tsung.
+\newblock False discovery rate-adjusted charting schemes for multistage process
+  monitoring and fault identification.
+\newblock \emph{Technometrics}, 51\penalty0 (2):\penalty0 186--205, 2009.
+
+\bibitem[Liang et~al.(2016)Liang, Xiang, and Pu]{liang2016robust}
+W.~Liang, D.~Xiang, and X.~Pu.
+\newblock A robust multivariate ewma control chart for detecting sparse mean
+  shifts.
+\newblock \emph{Journal of Quality Technology}, 48\penalty0 (3):\penalty0
+  265--283, 2016.
+
+\bibitem[Mason et~al.(1995)Mason, Tracy, and Young]{mason1995decomposition}
+R.~L. Mason, N.~D. Tracy, and J.~C. Young.
+\newblock Decomposition of $t^2$ for multivariate control chart interpretation.
+\newblock \emph{Journal of quality technology}, 27\penalty0 (2):\penalty0
+  99--108, 1995.
+
+\bibitem[Mason et~al.(1997)Mason, Tracy, and Young]{mason1997practical}
+R.~L. Mason, N.~D. Tracy, and J.~C. Young.
+\newblock A practical approach for interpreting multivariate $t^2$ control
+  chart signals.
+\newblock \emph{Journal of Quality Technology}, 29\penalty0 (4):\penalty0
+  396--406, 1997.
+
+\bibitem[Mei(2011)]{mei2011quickest}
+Y.~Mei.
+\newblock Quickest detection in censoring sensor networks.
+\newblock In \emph{2011 IEEE International Symposium on Information Theory
+  Proceedings}, pages 2148--2152. IEEE, 2011.
+
+\bibitem[Wang and Jiang(2009)]{wang2009high}
+K.~Wang and W.~Jiang.
+\newblock High-dimensional process monitoring and fault isolation via variable
+  selection.
+\newblock \emph{Journal of Quality Technology}, 41\penalty0 (3):\penalty0
+  247--258, 2009.
+
+\bibitem[Woodall and Montgomery(2014)]{woodall2014some}
+W.~H. Woodall and D.~C. Montgomery.
+\newblock Some current directions in the theory and application of statistical
+  process monitoring.
+\newblock \emph{Journal of Quality Technology}, 46\penalty0 (1):\penalty0
+  78--94, 2014.
+
+\bibitem[Xian et~al.(2018)Xian, Wang, and Liu]{xian2018nonparametric}
+X.~Xian, A.~Wang, and K.~Liu.
+\newblock A nonparametric adaptive sampling strategy for online monitoring of
+  big data streams.
+\newblock \emph{Technometrics}, 60\penalty0 (1):\penalty0 14--25, 2018.
+
+\bibitem[Xiang and Tsung(2008)]{xiang2008statistical}
+L.~Xiang and F.~Tsung.
+\newblock Statistical monitoring of multi-stage processes based on engineering
+  models.
+\newblock \emph{IIE transactions}, 40\penalty0 (10):\penalty0 957--970, 2008.
+
+\bibitem[Zamba and Hawkins(2006)]{zamba2006multivariate}
+K.~Zamba and D.~M. Hawkins.
+\newblock A multivariate change-point model for statistical process control.
+\newblock \emph{Technometrics}, 48\penalty0 (4):\penalty0 539--549, 2006.
+
+\bibitem[Zhu and Jiang(2009)]{zhu2009adaptive}
+Y.~Zhu and W.~Jiang.
+\newblock An adaptive $t^2$ chart for multivariate process monitoring and
+  diagnosis.
+\newblock \emph{IIE Transactions}, 41\penalty0 (11):\penalty0 1007--1018, 2009.
+
+\bibitem[Zou et~al.(2015)Zou, Wang, Zi, and Jiang]{zou2015efficient}
+C.~Zou, Z.~Wang, X.~Zi, and W.~Jiang.
+\newblock An efficient online monitoring method for high-dimensional data
+  streams.
+\newblock \emph{Technometrics}, 57\penalty0 (3):\penalty0 374--387, 2015.
+
+\end{thebibliography}

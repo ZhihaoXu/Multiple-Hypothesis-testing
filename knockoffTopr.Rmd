@@ -27,24 +27,36 @@ generateN = function(mu,Sigma=0){
 }
 
 # n = number of infected censor, K = Number of Censor
-simulate_topr = function(n,mug=0.5,muw=0.5,Sigma=0,r=10,a=46.55,N=100){
-  mu = c(rep(mug,n),rep(0,N-n))
-  W = rep(0,N)
+simulate_topr = function(mu,Sigma=0,r=10,a=46.55){
+  # mu = c(rep(mug,n),rep(0,N-n))
+  W = rep(0,length(mu))
   m = 0
   data = c()
   allW = c()
   
+  if (length(Sigma)==1){
+    data = matrix(generateN(rep(mu,10000),Sigma=0),nrow=length(mu),byrow=FALSE)
+  } else{
+    data = t(mvrnorm(n=10000,mu=mu,Sigma=Sigma))
+    # s = rep(min(c(2*min(eigen(Sigma)$values),1)),N)
+    # Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
+    # muXXX = (Sigma - diag(s))%*%solve(Sigma)
+  }
+  
   while (TRUE) {
     m = m + 1
-    data=cbind(data,generateN(mu,Sigma))
     
-    W = W + log(g(data[,m],muw = muw)/f(data[,m]))
+    if (m>10000){
+      data=cbind(data,generateN(mu,Sigma))
+    }
+    
+    W = W + log(g(data[,m])/f(data[,m]))
     W = ifelse(W>0,W,0)
     allW = cbind(allW,W)
     
-    s = sort(W,decreasing = TRUE,index.return =TRUE)
-    w = s$x[1:r]
-    r.index = s$ix[1:r]
+    sw = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = sw$x[1:r]
+    r.index = sw$ix[1:r]
     
     t = sum(w)
     if (t > a){
@@ -53,31 +65,56 @@ simulate_topr = function(n,mug=0.5,muw=0.5,Sigma=0,r=10,a=46.55,N=100){
   }
   # data: the whole dataset, n: stopping time, 
   # W: the vector of all the W statistic, r.index: selected index
-  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index,sig=n,mug=mug,muw=muw,N=N,r=r,a=a)
+  result <- list(data=data,StopT=m,W=W,allW=allW,r.index = r.index,mu=mu,
+                 Sigma=Sigma,r=r,a=a,s=s,Sigmak=Sigmak,muXXX=muXXX,N=length(mu))
   return(result)
 }
 
 # t = Stopping time T, K = Number of censor
-simulate_topr_Dummy = function(topr,mu,Sigma=0,r=10,a=46.55){
-  W = rep(0,topr$N)
-  if (length(Sigma)==1){
-    data = matrix(generateN(rep(mu,topr$StopT),Sigma=0),nrow=topr$N,byrow=FALSE)
+simulate_topr_Dummy = function(topr,thresh,r=10,a=46.55,type=type){
+  muHat = apply(topr$data,1,mean)
+  # muHat = rep(max(topr$mu),1000)
+  # muHat[! 1:1000 %in% topr$r.index] = 0
+  # thresh = qnorm(0.95,mean=0,sd=1/sqrt(topr$StopT))
+  muHat = ifelse(muHat>thresh,muHat,0)
+  if (type=="Estimate"){
+    muHat = ifelse(muHat>thresh,muHat,0)
+  } else{
+    muHat = topr$mu
+  }
+  
+  W = rep(0,length(topr$mu))
+  if (length(topr$Sigma)==1){
+    data = matrix(generateN(rep(mu0,topr$StopT),Sigma=0),nrow=topr$N,byrow=FALSE)
   } else {
     # Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
-    data = c()
-    for (j in 1:topr$StopT){
-      muk = (Sigma - diag(s))%*%solve(Sigma)%*%topr$data[,j]
-      data = cbind(data,generateN(mu=muk,Sigma=Sigmak))
-    }
+    data = matrix(rep(NA,N*topr$StopT),topr$N)
+    # s = rep(min(c(2*min(eigen(topr$Sigma)$values),1)),N)
+    # Sigmak = topr$Sigma - (topr$Sigma - diag(s)) %*% solve(topr$Sigma) %*% (topr$Sigma - diag(s))
+    # for (j in 1:topr$StopT){
+    #   # muk = (topr$Sigma - diag(s))%*%solve(topr$Sigma)%*%(topr$data[,j]-muHat)
+    #   muk = topr$muXXX%*%(topr$data[,j]-muHat)
+    #   data[,j] = generateN(mu=muk,Sigma=topr$Sigmak)
+    #   # data = cbind(data,generateN(mu=muk,Sigma=topr$Sigmak))
+    # }
   }
+  
   
   for (i in 1:topr$StopT){
     
-    W = W + log(g(data[,i],muw=topr$muw)/f(data[,i]))
+    if (length(topr$Sigma)==1){
+      W = W + log(g(data[,i])/f(data[,i]))
+    } else {
+      muk = topr$muXXX%*%(topr$data[,i]-muHat)
+      data[,i] = generateN(mu=muk,Sigma=topr$Sigmak)
+      W = W + log(g(data[,i])/f(data[,i]))
+    }
+    
+    
     W = ifelse(W>0,W,0)
   
-    s = sort(c(W,topr$allW[,i]),decreasing = TRUE,index.return =TRUE)
-    w = s$x[1:r]
+    sw = sort(c(W,topr$allW[,i]),decreasing = TRUE,index.return =TRUE)
+    w = sw$x[1:r]
     if (sum(w)>a){
       break
     }
@@ -91,15 +128,15 @@ simulate_topr_Dummy = function(topr,mu,Sigma=0,r=10,a=46.55){
 
 ```{r}
 library(Smisc)
-knockoff1 = function(topr,mu,Sigma=0,alpha=0.2){
-  mu=rep(0,topr$N)
-  null = simulate_topr_Dummy(topr,mu=mu,Sigma=Sigma,r=topr$r,a=topr$a)
+knockoff1 = function(topr,thresh,alpha=0.2,type=type){ 
+  # mu=rep(0,topr$N)
+  null = simulate_topr_Dummy(topr,thresh=thresh,r=topr$r,a=topr$a)
   
   # W = topr$allW[,null$t0] - null$W
   # W = apply(topr$data[,1:null$t0],1,mean) - apply(null$data,1,mean)
-  W = apply(topr$data[,1:null$t0],1,cusum,k=0,h=1000)[null$t0,] - apply(null$data,1,cusum,k=0,h=1000)[null$t0,]
+  W = apply(topr$data[,1:null$t0],1,cusum,k=0,h=10000)[null$t0,] - apply(null$data,1,cusum,k=0,h=10000)[null$t0,]
   
-  t0 = c(sort(abs(W)),1000)
+  t0 = c(sort(abs(W)),10000)
   for (t in t0){
     Sp = sum(W >= t)
     Sm = sum(W <= -t)
@@ -109,99 +146,455 @@ knockoff1 = function(topr,mu,Sigma=0,alpha=0.2){
       break
     }
   }
-  t
   rej = which(W >= t)
-  return(rej)
+  return(list(rej=rej,earlyT=null$t0))
 }
 ```
 
-## Correlated
 
 ```{r}
-library(tcltk2)
-rho = 0.8;N=250
-Sigma = matrix(rep(rho,N*N),N)
-diag(Sigma) = 1
+quan = function(d,a=0.2){
+  d = sort(d)
+  return(d[length(d)*(1-a)])
+}
+
+N = 300
+Sigma = matrix(rep(0,N*N),N)
+rho = 0.5
+for (i in 1:N){
+  for (j in 1:N){
+    Sigma[i,j] = rho^(abs(i-j))
+  }
+}
+
+mu = rep(0,300)
+
+Quan = c()
+for (j in 1:200){
+  d = t(mvrnorm(n=200,mu=mu,Sigma=Sigma))
+  # d = matrix(rnorm(200*1000,0,1),200)
+  cummean = t(apply(d,1,cumsum))/matrix(rep(seq(1:200),N),N,byrow=T)
+  Quan = rbind(Quan,apply(cummean,2,max))
+}
+threshArray = apply(Quan,2,quan,a=0.2)
+```
+
+
+
+
+
+
+
+前后一个correlation
+
+True $\mu$
+
+|      Topr       |     Knockoff  |
+|  FDR  |  POWER  |  FDR  | POWER | Sig |  #  |
+| 0.167 | 0.833   | 0.161 | 0.999 | 0.8 | 100 |
+| 0.316 | 0.684   | 0.193 | 0.984 | 0.5 | 100 |
+
+|     topr        | thresh muHat  |   True mu     | Sig |  #  |
+| 0.555 |  0.890  | 0.186 | 0.54  | 0.187 | 0.992 | 0.5 | 50  |
+| 0.297 |  0.703  | 0.133 | 0.336 | 0.192 | 0.986 | 0.5 | 100 |
+| 0.165 |  0.557  | 0.109 | 0.255 | 0.202*| 0.980 | 0.5 | 150 |
+| 0.506 |  0.987  | 0.195 | 0.8294| 0.199 | 0.999 | 1   | 50  |
+| 0.126 |  0.874  | 0.178 | 0.6814| 0.182 | 0.999 | 1   | 100 |
+| 0.023 |  0.651  | 0.134 | 0.560 | 0.198 | 0.999 | 1   | 150 |
+| 0.503 |  0.999  | 0.217*| 0.9704| 0.199 | 1     | 1.5 | 50  |
+| 0.049 |  0.951  | 0.194 | 0.875 | 0.193 | 1     | 1.5 | 100 |
+| 0.003 |  0.664  | 0.173 | 0.804 | 0.202*| 0.999 | 1.5 | 150 |
+
+Long term
+| 0.556 |  0.888  | 0.136 | 0.570 |       |       | 0.5 | 50  |
+| 0.294 |  0.706  | 0.116 | 0.424 |       |       | 0.5 | 100 |
+| 0.161 |  0.560  | 0.074 | 0.327 |       |       | 0.5 | 150 |
+| 0.506 |  0.988  | 0.179 | 0.950 |       |       | 1   | 50  |
+| 0.122 |  0.878  | 0.120 | 0.867 |       |       | 1   | 100 |
+| 0.022 |  0.652  | 0.102 | 0.821 |       |       | 1   | 150 |
+| 0.501 |  0.999  | 0.196 | 0.995 |       |       | 1.5 | 50  |
+| 0.053 |  0.947  | 0.160 | 0.977 |       |       | 1.5 | 100 |
+| 0.001 |  0.665  | 0.143 | 0.963 |       |       | 1.5 | 150 |
+
+
+
+
+
+```{r}
+simulateKFTopr = function(mushift=0.5,sig=20,N=300,size=100,q0=0.2,type="Estimate"){
+  FDRTopr = c()
+  POWERTopr = c()
+  FDRKnockoff = c()
+  POWERKnockoff = c()
+  StopTime = c()
+  KStopTime = c()
+  pb <- tkProgressBar("进度","已完成 %", 0, 100)
+  # size = 100
+  # sig=20;N=1000
+  
+  for (i in 1:size){
+    errIdx = sample(N,sig)
+    mu = rep(0,N)
+    mu[errIdx] = mushift
+    # mu = c(rep(0.5,100),rep(0,N-100))
+  
+    topr = simulate_topr(mu=mu,Sigma=Sigma,r=30,a=46.55*5)
+    StopTime = c(StopTime,topr$StopT)
+    if (topr$StopT>200){
+      thresh = threshArray[200]
+    }else{
+      thresh = threshArray[topr$StopT]
+    }
+    
+    # errIdx = which(mu != 0)
+    
+    fdrTopr = sum((topr$r.index %in% errIdx)==FALSE)/length(topr$r.index)
+    powerTopr = sum(topr$r.index %in% errIdx)/sig
+    FDRTopr = c(FDRTopr,fdrTopr)
+    POWERTopr = c(POWERTopr,powerTopr)
+    
+    Knockoff = knockoff1(topr,thresh,alpha = q0,type=type)
+    rejKnockoff = Knockoff$rej
+    KstopT = Knockoff$earlyT
+    KStopTime = c(KStopTime,KstopT)
+    
+    fdrKnockoff = sum((rejKnockoff %in% errIdx)==FALSE)/length(rejKnockoff)
+    powerKnockoff = sum(rejKnockoff %in% errIdx)/sig
+    
+    FDRKnockoff = c(FDRKnockoff,fdrKnockoff)
+    POWERKnockoff = c(POWERKnockoff,powerKnockoff)
+  
+    info<- sprintf("已完成 %d%%", round(i*100/size))  
+    setTkProgressBar(pb, i*100/size, sprintf("进度 (%s)", info),info)
+  }
+  close(pb)
+  return(list(mushift=mushift,sig=sig,
+              StopTime=StopTime,KStopTime=KStopTime,
+              FDRTopr=FDRTopr,POWERTopr=POWERTopr,
+              FDRKnockoff=FDRKnockoff,POWERKnockoff=POWERKnockoff))
+}
+
+outputkf = function(kf){
+  cat("mu:",kf$mushift," sig:",kf$sig," ARL:",mean(kf$StopTime),"\n")
+  cat("Topr:\n")
+  cat("FDR: ",mean(kf$FDRTopr),"  ")
+  cat("POWER: ",mean(kf$POWERTopr),"\n")
+  
+  cat("Knockoff:\n")
+  kf$FDRKnockoff[is.nan(kf$FDRKnockoff)] = 0
+  cat("FDR: ",mean(kf$FDRKnockoff),"  ")
+  cat("POWER: ",mean(kf$POWERKnockoff),"\n\n ")
+}
+```
+
+
+
+
+
+
+```{r}
+N = 300
+Sigma = matrix(rep(0,N*N),N)
+rho = -0.5
+for (i in 1:N){
+  for (j in 1:N){
+    Sigma[i,j] = rho^(abs(i-j))
+  }
+}
+
+mu = rep(0,N)
+Quan = c()
+for (j in 1:1000){
+  d = t(mvrnorm(n=200,mu=mu,Sigma=Sigma))
+  # d = matrix(rnorm(200*1000,0,1),200)
+  cummean = t(apply(d,1,cumsum))/matrix(rep(seq(1:200),N),N,byrow=T)
+  Quan = rbind(Quan,apply(cummean,2,max))
+}
+threshArray = apply(Quan,2,quan,a=0.2)
+
 s = rep(min(c(2*min(eigen(Sigma)$values),1)),N)
 Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
+# muXXX = (Sigma - diag(s))%*%solve(Sigma)
+muXXX = diag(rep(1,N)) - diag(s)%*%solve(Sigma)
+```
 
-FDR = c()
-POWER = c()
-POWERtopr = c()
-FDRtopr = c()
-sig = 10
 
-pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size=100
-for (k in 1:size){
-  topr = simulate_topr(n=sig,mug=0.5,muw=0.5,Sigma=Sigma,N=250,r=10,a=46.55)
-  
-  rej = knockoff1(topr,Sigma = Sigma,alpha=0.2)
-  FDR = c(FDR,sum(rej %in% seq(1:sig)==FALSE)/length(rej))
-  POWER = c(POWER,sum(rej %in% seq(1:sig))/length(seq(1:sig)))
-  
-  fdrTopr = sum((topr$r.index %in% 0:sig)==FALSE)/length(topr$r.index)
-  powerTopr = sum(topr$r.index %in% 0:sig)/sig
-  FDRtopr = c(FDRtopr,fdrTopr)
-  POWERtopr = c(POWERtopr,powerTopr)
-  
-  info<- sprintf("已完成 %d%%", round(k*100/size))
-  setTkProgressBar(pb, k*100/size, sprintf("进度 (%s)", info),info)
+```{r}
+kf = simulateKFTopr(mushift=0.5,sig=20,N=300,size=1000,q0=0.1)
+outputkf(kf)
+kf = simulateKFTopr(mushift=0.5,sig=40,N=300,size=1000,q0=0.1)
+outputkf(kf)
+kf = simulateKFTopr(mushift=1,sig=20,N=300,size=1000,q0=0.1)
+outputkf(kf)
+kf = simulateKFTopr(mushift=1,sig=40,N=300,size=1000,q0=0.1)
+outputkf(kf)
+
+
+kf = simulateKFTopr(mushift=0.5,sig=20,N=300,size=1000,q0=0.2)
+outputkf(kf)
+kf = simulateKFTopr(mushift=0.5,sig=40,N=300,size=1000,q0=0.2)
+outputkf(kf)
+kf = simulateKFTopr(mushift=1,sig=20,N=300,size=1000,q0=0.2)
+outputkf(kf)
+kf = simulateKFTopr(mushift=1,sig=40,N=300,size=1000,q0=0.2)
+outputkf(kf)
+```
+
+
+```{r}
+N = 300
+rho = 0.2
+Sigma = matrix(rep(0,N*N),N)
+n = N/10
+sigmaBlock = matrix(rep(rho,n*n),n)
+for (i in 1:10){
+  Sigma[((i-1)*n+1):(i*n),((i-1)*n+1):(i*n)] = sigmaBlock
 }
-close(pb)
-```
+diag(Sigma) = 1
 
-
-```{r}
-cat("Topr:\n")
-FDRtopr[is.nan(FDRtopr)] = 0
-mean(FDRtopr)
-mean(POWERtopr)
-cat("Knockoff:\n")
-FDR[is.nan(FDR)] = 0
-mean(FDR)
-mean(POWER)
-```
-
-
-## Independent
-
-```{r}
-FDR = c()
-POWER = c()
-POWERtopr = c()
-FDRtopr = c()
-sig = 15
-
-pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size=1000
-for (k in 1:size){
-  topr = simulate_topr(n=sig,mug=1.5,muw=0.5,Sigma=0,N=250,r=10,a=46.55)
-  rej = knockoff1(topr,alpha=0.2)
-  FDR = c(FDR,sum(rej %in% seq(0:sig)==FALSE)/length(rej))
-  POWER = c(POWER,sum(rej %in% seq(0:sig))/sig)
-  
-  fdrTopr = sum((topr$r.index %in% 0:sig)==FALSE)/length(topr$r.index)
-  powerTopr = sum(topr$r.index %in% 0:sig)/sig
-  FDRtopr = c(FDRtopr,fdrTopr)
-  POWERtopr = c(POWERtopr,powerTopr)
-  
-  info<- sprintf("已完成 %d%%", round(k*100/size))
-  setTkProgressBar(pb, k*100/size, sprintf("进度 (%s)", info),info)
+mu = rep(0,N)
+Quan = c()
+for (j in 1:100){
+  d = t(mvrnorm(n=200,mu=mu,Sigma=Sigma))
+  # d = matrix(rnorm(200*1000,0,1),200)
+  cummean = t(apply(d,1,cumsum))/matrix(rep(seq(1:200),N),N,byrow=T)
+  Quan = rbind(Quan,apply(cummean,2,max))
 }
-close(pb)
+threshArray = apply(Quan,2,quan,a=0.1)
+
+s = rep(min(c(2*min(eigen(Sigma)$values),1)),N)
+Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
+muXXX = (Sigma - diag(s))%*%solve(Sigma)
+```
+
+
+
+
+
+```{r}
+kf = simulateKFTopr(mushift=0.5,sig=20,N=300,size=1000,q0=0.1)
+outputkf(kf)
+kf = simulateKFTopr(mushift=0.5,sig=40,N=300,size=1000,q0=0.1)
+outputkf(kf)
+kf = simulateKFTopr(mushift=1,sig=20,N=300,size=1000,q0=0.1)
+outputkf(kf)
+kf = simulateKFTopr(mushift=1,sig=40,N=300,size=1000,q0=0.1)
+outputkf(kf)
+```
+
+
+
+
+
+```{r}
+N = 500
+rho = 0.4
+Sigma = matrix(rep(0,N*N),N)
+n = N/10
+sigmaBlock = matrix(rep(rho,n*n),n)
+for (i in 1:10){
+  Sigma[((i-1)*n+1):(i*n),((i-1)*n+1):(i*n)] = sigmaBlock
+}
+diag(Sigma) = 1
+diag(solve(Sigma))
+
+s = rep(min(c(2*min(eigen(Sigma)$values),1)),N)
+diag(diag(s) %*% solve(Sigma))
+(Sigma - diag(s))%*%solve(Sigma)
+
+N = 500
+Sigma = matrix(rep(0,N*N),N)
+rho = -0.5
+for (i in 1:N){
+  for (j in 1:N){
+    Sigma[i,j] = rho^(abs(i-j))
+  }
+}
+s = rep(min(c(2*min(eigen(Sigma)$values),1)),N)
+diag(diag(s) %*% solve(Sigma))
+(Sigma - diag(s))%*%solve(Sigma)
+```
+
+
+
+
+
+
+```{r}
+f = function(x){
+  return(dnorm(x,mean=0,sd=1))
+}
+g = function(x,muw=0.5){
+  return(dnorm(x,mean=muw,sd=1))
+}
+
+# index: the affected censor, K: the number of all the censors
+generateN = function(mu,Sigma=0){
+  if (length(Sigma)==1){
+    column = rnorm(length(mu),mean=mu,sd=1)
+  } else {
+    column = mvrnorm(n=1,mu=mu,Sigma=Sigma)
+  }
+  return(column)
+}
+
+```
+
+
+
+
+
+
+```{r}
+AllData = read.table("secom.data")
+label = read.table("secom_labels.data")[,1]
+ICindex = which(label==-1)
+OCindex = which(label==1)
+for (i in 1:590){
+  AllData[which(is.na(AllData[,i])),i] = mean(AllData[,i],na.rm = T)
+}
+
+ind = (AllData[1,]==AllData[2,])
+for (i in 2:35){
+  ind = ind & (AllData[1,]==AllData[i,])
+}
+ind[c(95,96,101,102)]=T
+ind[c(419,420,483:490,500,501,512)]=T
+ind[c(579:582)]=T
+Nind = (ind==FALSE)
+AllRawData = AllData[,Nind]
+
+
+ICRawData = AllRawData[ICindex,]
+OCRawData = AllRawData[OCindex,]
+
+ICData = matrix(rep(NA,1463*dim(AllRawData)[2]),nrow=1463)
+OCData = matrix(rep(NA,104*dim(AllRawData)[2]),nrow=104)
+
+# muIC = apply(ICRawData,2,mean)
+# sdIC = apply(ICRawData,2,sd)
+# ICData = scale(ICRawData,center = muIC,scale = sdIC)
+# OCData = scale(OCRawData,center = muIC,scale = sdIC)
+for (i in 1:dim(AllRawData)[2]){
+  for (j in 1:1463){
+    p0 = sum(ICRawData[,i]<=ICRawData[j,i])/1463
+    if (p0==1){
+      p0 = (1463-0.5)/1463
+    }
+    if (p0==0){
+      p0 = 0.5/1463
+    }
+    ICData[j,i] = qnorm(p0)
+  }
+}
+
+for (i in 1:dim(AllRawData)[2]){
+  for (j in 1:104){
+    p0 = sum(ICRawData[,i]<=OCRawData[j,i])/1463
+    if (p0==1){
+      p0 = (1463-0.5)/1463
+    }
+    if (p0==0){
+      p0 = 0.5/1463
+    }
+    OCData[j,i] = qnorm(p0)
+  }
+}
+
+for (i in 1:dim(AllRawData)[2]){
+  vari = var(ICData[,i])
+  ICData[,i] = ICData[,i]/sqrt(var(ICData[,i]))
+  OCData[,i] = OCData[,i]/sqrt(var(ICData[,i]))
+}
+
+Sigma = cov(ICData)
+heatmap(Sigma,Rowv=NA,Colv = NA)
+# heatmap(Sigma,Rowv=NA,Colv = NA, main=expression(paste("Sample Covariance Matrix ",Sigma^2)),cexRow=0.5)
+Sigma[abs(Sigma)<0.1]=0
+eig = eigen(Sigma)
+D = eig$values
+D = ifelse(D>0.2,D,0.2)
+V = eig$vectors
+Sigma = V %*% diag(D) %*% t(V)
+is.positive.definite(Sigma)
+heatmap(Sigma,Rowv=NA,Colv = NA)
 ```
 
 
 ```{r}
-cat("Topr:\n")
-FDRtopr[is.nan(FDRtopr)] = 0
-mean(FDRtopr)
-mean(POWERtopr)
-cat("Knockoff:\n")
-FDR[is.nan(FDR)] = 0
-mean(FDR)
-mean(POWER)
+quan = function(d,a=0.2){
+  d = sort(d)
+  return(d[length(d)*(1-a)])
+}
+
+N = dim(AllRawData)[2]
+mu = rep(0,N)
+
+Quan = c()
+for (j in 1:200){
+  sam = sample(1463,104)
+  # d = t(ICData[sam,])
+  d = t(mvrnorm(n=104,mu=mu,Sigma=Sigma))
+  cummean = t(apply(d,1,cumsum))/matrix(rep(seq(1:104),N),N,byrow=T)
+  Quan = rbind(Quan,apply(cummean,2,max))
+}
+threshArray = apply(Quan,2,quan,a=0.1)
+```
+
+```{r}
+r=75;a=302
+TTT = c()
+for (aaa in 1:1000){
+  W = rep(0,dim(AllRawData)[2])
+  sam = sample(1463,800)
+  c = 0
+  for (i in sam) {
+    c = c+1
+    W = W + log(g(ICData[i,])/f(ICData[i,]))
+    W = ifelse(W>0,W,0)
+    
+    sw = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = sw$x[1:r]
+    r.index = sw$ix[1:r]
+    
+    if (sum(w)>a){
+      break
+    }
+  }
+  TTT = c(TTT,c)
+}
+mean(TTT)
+```
+
+   
+r   a    t   t_k            #rej
+25  302  51 50.52(0.70)     39.57(7.85)
+50  375  36 31.97(2.08)     25.97(7.53)
+75  430  28 26.71(0.46)     23.37(8.83)
+100 480  27 24.92(0.37)     22.97(5.92)
+
+
+```{r}
+r=50;a=375
+ObsAllW = c()
+W = rep(0,dim(AllRawData)[2])
+TTT = c()
+for (i in 1:104) {
+  W = W + log(g(OCData[i,])/f(OCData[i,]))
+  W = ifelse(W>0,W,0)
+  ObsAllW = cbind(ObsAllW,W)
+  
+  sw = sort(W,decreasing = TRUE,index.return =TRUE)
+  w = sw$x[1:r]
+  r.index = sw$ix[1:r]
+  t = sum(w)
+  if (t > a){
+    break
+  }
+  TTT = c(TTT,t)
+}
+StopT = i
+thresh = threshArray[StopT]
 ```
 
 
@@ -209,14 +602,148 @@ mean(POWER)
 
 
 
+```{r}
+library(Smisc)
+library(corpcor)
+# mu0 = rep(0,474)
+muHat = apply(OCData[1:StopT,],2,mean)
+muHat = ifelse(muHat>thresh,muHat,0)
+N = dim(ICData)[2]
+W = rep(0,N)
+data = matrix(rep(NA,N*StopT),StopT)
+s = rep(min(c(2*min(eigen(Sigma)$values),1)),N)
+Sigmak = Sigma - (Sigma - diag(s)) %*% solve(Sigma) %*% (Sigma - diag(s))
+# Sigmak = make.positive.definite(Sigmak)
+muXXX = (Sigma - diag(s))%*%solve(Sigma)
+
+
+
+ExpKT = c()
+ExpKRej = c()
+KFRej = rep(0,N)
+for (k in 1:100){
+  W = rep(0,N)
+  data = matrix(rep(NA,N*StopT),StopT)
+  for (j in 1:StopT){
+    muk = muXXX%*%(OCData[j,]-muHat)
+    data[j,] = generateN(mu=muk,Sigma=Sigmak)
+    W = W + log(g(data[j,])/f(data[j,]))
+    
+    W = ifelse(W>0,W,0)
+  
+    sw = sort(c(W,ObsAllW[,j]),decreasing = TRUE,index.return =TRUE)
+    w = sw$x[1:r]
+    if (sum(w)>a){
+      break
+    }
+  }
+  
+  
+  W = apply(OCData[1:j,],2,cusum,k=0,h=10000)[j,] - apply(data[1:j,],2,cusum,k=0,h=10000)[j,]
+  t0 = c(sort(abs(W)),10000)
+  for (t in t0){
+    Sp = sum(W >= t)
+    Sm = sum(W <= -t)
+    FDRhat = (1+Sm)/max(1,Sp)
+    if (FDRhat <= 0.1){
+      break
+    }
+  }
+  rej = which(W >= t)
+  ExpKT = c(ExpKT,j)
+  ExpKRej = c(ExpKRej,length(rej))
+  KFRej[rej] = KFRej[rej] + 1
+}
+
+kr = sort(KFRej,decreasing = TRUE,index.return=T)
+rej = kr$ix[1:round(mean(ExpKRej))]
+rej
+mean(ExpKT)
+sd(ExpKT)
+mean(ExpKRej)
+sd(ExpKRej)
+# sum(r.index %in% rej)/length(r.index)
+# sum(rej %in% r.index)/length(rej)
+# colnames(ICRawData)[kr$ix[1:length(rej)]]
+# barplot(KFRej[kr$ix][1:length(rej)]/100,names.arg = colnames(ICRawData)[kr$ix[1:length(rej)]],cex.names = 0.4,horiz = TRUE,las=1)
+```
+
+
+```{r}
+rej100 = data.frame(colnames(ICRawData)[kr$ix[1:100]],KFRej[kr$ix][1:100]/100)
+colnames(rej100) = c("id","prob")
+
+rej25id = rej25$id[1:40]
+rej50id = rej50$id[1:26]
+rej75id = rej75$id[1:22]
+rej100id = rej100$id[1:24]
+rejid = rej25id
+rejid = union(rejid,rej50id)
+rejid = union(rejid,rej75id)
+rejid = union(rejid,rej100id)
+```
 
 
 
 
+```{r}
+df = rejid
+df = data.frame(df,matrix(rep(0,44*4),44))
+for (d in 1:dim(df)[1]){
+  if (df$id[d] %in% rej25$id){
+    index = which(as.character(rej25$id)==df$id[d])
+    df[d,2] = rej25$prob[index]
+  }
+}
+colnames(df) = c("id","r=25","r=50","r=75","r=100")
+write.csv(df,"Table6_1.csv")
+```
 
 
+```{r}
+SWp = c()
+for (i in 1:dim(ICRawData)[2]){
+  st = shapiro.test(ICRawData[,i])
+  SWp = c(SWp,st$p.value)
+}
+```
 
 
+```{r}
+par(mfrow=c(1,2))
+index = which(colnames(ICRawData)=="V435")
+# plot(OCData[1:51,index])
+# points(25,OCData[25,index],col="blue",pch=16)
+# points(27,OCData[27,index],col="blue",pch=16)
+# W = log(g(OCData[,index])/f(OCData[,index]))
+W = cusum(OCData[1:51,index],k=0,h=50)
+plot(W[1:51],type="l",ylab="V435",xlab="Time")
+points(25,W[25],col="blue")
+points(27,W[27],col="blue")
+points(32,W[32],col="blue")
+points(51,W[51],col="blue")
 
+data165=matrix(rep(NA,51*100),100)
+data300=matrix(rep(NA,51*100),100)
+for (k in 1:100){
+  W = rep(0,N)
+  data = matrix(rep(NA,N*51),51)
+  for (j in 1:51){
+    muk = muXXX%*%(OCData[j,]-muHat)
+    data[j,] = generateN(mu=muk,Sigma=Sigmak)
+    W = W + log(g(data[j,])/f(data[j,]))
+    
+    W = ifelse(W>0,W,0)
+  
+    # sw = sort(c(W,ObsAllW[,j]),decreasing = TRUE,index.return =TRUE)
+    # w = sw$x[1:r]
+    # if (sum(w)>a){
+    #   break
+    # }
+  }
+  data165[k,] = data[,144]
+  data300[k,] = data[,234]
+}
+```
 
 

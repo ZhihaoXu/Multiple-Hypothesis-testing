@@ -1,0 +1,143 @@
+---
+title: "PvalueCI"
+author: "Xu Zhihao"
+date: "7/14/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tcltk2)
+library(MASS)
+f = function(x){
+  return(dnorm(x,mean=0,sd=1))
+}
+g = function(x,muw=0.5){
+  return(dnorm(x,mean=muw,sd=1))
+}
+
+# # index: the affected censor, K: the number of all the censors
+# generateN = function(mu,Sigma=0){
+#   if (length(Sigma)==1){
+#     column = rnorm(length(mu),mean=mu,sd=1)
+#   } else {
+#     column = mvrnorm(n=1,mu=mu,Sigma=Sigma)
+#   }
+#   return(column)
+# }
+
+# n = number of infected censor, K = Number of Censor
+simulate_topr = function(mu,r=10,a=46.55){
+  # mu = c(rep(mug,n),rep(0,N-n))
+  W = rep(0,length(mu))
+  m = 0
+  data = c()
+  allW = c()
+  
+  data = matrix(rnorm(length(mu)*200,mean=rep(mu,200),sd=1),nrow=length(mu),byrow=FALSE)
+  
+  while (TRUE) {
+    m = m + 1
+    
+    if (m>200){
+      data=cbind(data,rnorm(length(mu),mean=mu,sd=1))
+    }
+    
+    W = W + log(g(data[,m])/f(data[,m]))
+    W = ifelse(W>0,W,0)
+    allW = cbind(allW,W)
+    
+    sw = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = sw$x[1:r]
+    r.index = sw$ix[1:r]
+    
+    t = sum(w)
+    if (t > a){
+      break
+    }
+  }
+  # data: the whole dataset, n: stopping time, 
+  # W: the vector of all the W statistic, r.index: selected index
+  result <- list(data=data,StopT=m,W=W,allW=allW,
+                 r.index = r.index,mu=mu,r=r,a=a)
+  return(result)
+}
+
+simulate_dummy = function(topr,tindex){
+  muTest = topr$mu
+  muTest[tindex] = 0
+  W = rep(0,length(muTest))
+  m = 0
+  data = c()
+  allW = c()
+  
+  data = matrix(rnorm(length(muTest)*200,mean=rep(muTest,200),sd=1),nrow=length(muTest),byrow=FALSE)
+  
+  while (TRUE) {
+    m = m + 1
+    
+    if (m>200){
+      data=cbind(data,rnorm(length(muTest),mean=muTest,sd=1))
+    }
+    
+    W = W + log(g(data[,m])/f(data[,m]))
+    W = ifelse(W>0,W,0)
+    allW = cbind(allW,W)
+    
+    sw = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = sw$x[1:topr$r]
+    r.index = sw$ix[1:topr$r]
+    
+    t = sum(w)
+    if (t > topr$a){
+      break
+    }
+  }
+  # data: the whole dataset, n: stopping time, 
+  # W: the vector of all the W statistic, r.index: selected index
+  result <- list(data=data,StopT=m,W=W,allW=allW,
+                 r.index = r.index)
+}
+```
+
+
+```{r}
+estimateP = function(topr,tindex,B=100){
+  W_ = rep(NA,B)
+  b = 1
+  while (b <= B){
+    null = simulate_dummy(topr,tindex=2)
+    if (tindex %in% null$r.index == FALSE){
+      next
+    }
+    W_[b] = null$W[tindex]
+    b = b + 1
+  }
+  return(sum(W_>topr$W[tindex])/B)
+}
+```
+
+
+
+
+```{r}
+PP = c()
+mu = c(1,rep(0,99))
+
+for(j in 1:200){
+  print(j)
+  topr = simulate_topr(mu)
+  for (i in topr$r.index){
+    if (i==1){
+      next
+    }
+    PP = c(PP,estimateP(topr,tindex=i))
+  }
+}
+
+```
+
