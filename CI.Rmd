@@ -64,7 +64,7 @@ simulate_topr = function(mu,r=10,a=46.55,StopT=10000000){
   # data: the whole dataset, n: stopping time, 
   # W: the vector of all the W statistic, r.index: selected index
   result <- list(data=data, StopT=m, W=W, allW = allW,r.index = r.index, 
-                 a0=sum(w), mu=mu, muHat=muHat)
+                 a0=sum(w), mu=mu, muHat=muHat, r=r, a=a)
   return(result)
 }
 topr = simulate_topr(mu=c(rep(0.5,5),rep(0,95)))
@@ -74,37 +74,56 @@ topr = simulate_topr(mu=c(rep(0.5,5),rep(0,95)))
 
 
 ```{r}
-P0 = c()
-P1 = c()
+computeW = function(topr,i){
+  W = rep(0,100)
+  for (m in 1:topr$StopT) {
+    newMu = topr$mu
+    newMu[i] = 0
+    W = W + log(g(topr$data[,m]-newMu)/f(topr$data[,m]-newMu))
+    W = ifelse(W>0,W,0)
+    # s = sort(W,decreasing = TRUE,index.return =TRUE)
+    # w = s$x[1:r]
+    # r.index = s$ix[1:r]
+    # 
+    # t = sum(w)
+    # if (t > a){
+    #   break
+    # }
+  }
+  s = sort(W,decreasing = TRUE,index.return =TRUE)
+  return(sum(s$x[1:topr$r]))
+}
 ```
 
 
 ```{r}
-topr = simulate_topr(mu=c(rep(0.5,5),rep(0,95)),r=5)
-ii = 0
-for (i in topr$r.index){
-  ii = ii +1
-  p = rep(1,100)
-  mu0 = topr$mu
-  mu0[i] = 0
-  for (k in 1:100){
-    sim = simulate_topr(mu=mu0,StopT=topr$StopT,r=5)
-    if (sim$StopT>topr$StopT){
-      p[k] = 0
-    } else if ((sim$StopT==topr$StopT)&(sim$a0<topr$a0)){
-      p[k] = 0
-    } else{
-      p[k] = 1
+P = rep(NA,1000)
+for (kkk in 1:100){
+  mu = c(rep(0.5,5),rep(0,95))
+  topr = simulate_topr(mu,r=10)
+  ii = 0
+  for (i in topr$r.index){
+    ta0 = computeW(topr,i)
+    ii = ii +1
+    p = rep(0,100)
+    mu0 = rep(0,100)
+    mu0[i] = mu[i]
+    for (k in 1:100){
+      sim = simulate_topr(mu=mu0, StopT=topr$StopT, r=10)
+      if (sim$StopT<topr$StopT){
+        p[k] = 1
+      } else if ((sim$StopT==topr$StopT)&(sim$a0>ta0)){
+        p[k] = 1
+      } else{
+        p[k] = 0
+      }
     }
+    p=sum(p)/100
+    P[(kkk-1)*10+ii] = p
+    # cat(i,":\t",p,"\n")
   }
-  p=sum(p)/100
-  if (i %in% seq(1,1)){
-    P0 = c(P0,p)
-  } else {
-    P1 = c(P1,p)
-  }
-  cat(i,":\t",p,"\n")
 }
+
 ```
 
 
@@ -143,6 +162,17 @@ for (aaa in 1:size){
 }
 close(pb)
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 
 
