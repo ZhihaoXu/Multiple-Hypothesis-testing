@@ -74,89 +74,135 @@ topr = simulate_topr(mu=c(rep(0.5,5),rep(0,95)))
 
 
 ```{r}
-computeW = function(topr,i){
+computeWObs = function(topr,i){
   W = rep(0,100)
+  allsumR = rep(NA,topr$StopT)
   for (m in 1:topr$StopT) {
     newMu = topr$mu
     newMu[i] = 0
     W = W + log(g(topr$data[,m]-newMu)/f(topr$data[,m]-newMu))
     W = ifelse(W>0,W,0)
-    # s = sort(W,decreasing = TRUE,index.return =TRUE)
-    # w = s$x[1:r]
-    # r.index = s$ix[1:r]
-    # 
-    # t = sum(w)
-    # if (t > a){
-    #   break
-    # }
+    s = sort(W,decreasing = TRUE,index.return =TRUE)
+    allsumR[m] = sum(s$x[1:topr$r])
+  }
+  return(allsumR)
+}
+computeWGen = function(sim,i){
+  W = rep(0,100)
+  for (m in 1:sim$StopT) {
+    newMu = sim$mu
+    newMu[i] = 0
+    W = W + log(g(sim$data[,m]-newMu)/f(sim$data[,m]-newMu))
+    W = ifelse(W>0,W,0)
+
   }
   s = sort(W,decreasing = TRUE,index.return =TRUE)
-  return(sum(s$x[1:topr$r]))
+  return( sum(s$x[1:sim$r]))
+}
+```
+
+```{r}
+ST = c()
+mu = c(rep(1,2),rep(0.5,2),rep(0,96))
+for (i in 1:100){
+  topr = simulate_topr(mu,r=10,a=46.55*2)
+  ST = c(ST,topr$StopT)
+}
+mean(ST)
+```
+
+```{r}
+mu = c(rep(1.5,2),rep(0.75,2),rep(0,96))
+topr = simulate_topr(mu,r=10,a=46.55*2)
+ii = 0
+for (i in topr$r.index){
+  ii = ii +1
+  p = rep(0,200)
+  mu0 = topr$mu
+  mu0[3] = 0
+  for (k in 1:200){
+    sim = simulate_topr(mu=mu0, StopT=topr$StopT, r=10)
+    # if (sim$StopT<topr$StopT){
+    #   p[k] = 1
+    # } else if ((sim$StopT==topr$StopT)&(simW>ta0[sim$StopT])){
+    #   p[k] = 1
+    # } else{
+    #   p[k] = 0
+    # }
+    if (sort(apply(sim$data,1,mean))[101-ii]>apply(topr$data[,1:sim$StopT],1,mean)[i]){
+      p[k] = 1
+    }
+  }
+  p=sum(p)/200
+  cat(i,":\t",p,"\n")
 }
 ```
 
 
+
+
+
+
 ```{r}
-P = rep(NA,1000)
-for (kkk in 1:100){
+mu = c(rep(0.5,5),rep(0,95))
+topr = simulate_topr(mu,r=10)
+ii = 0
+for (i in topr$r.index){
+  ta0 = computeWObs(topr,i)
+  ii = ii +1
+  p = rep(0,100)
+  mu0 = topr$mu
+  mu0[i] = 0
+  for (k in 1:100){
+    sim = simulate_topr(mu=mu0, StopT=topr$StopT, r=10)
+    simW = computeWGen(sim,i)
+    # if (sim$StopT<topr$StopT){
+    #   # print("Early Stop")
+    #   p[k] = 1
+    # } else if ((sim$StopT==topr$StopT)&(simW>ta0[sim$StopT])){
+    #   p[k] = 1
+    # } else{
+    #   p[k] = 0
+    # }
+    if (simW>ta0[sim$StopT]){
+      p[k] = 1
+    }
+  }
+  p=sum(p)/100
+  cat(i,":\t",p,"\n")
+}
+
+```
+
+
+```{r}
+P = rep(NA,5*100)
+pb <- tkProgressBar("进度","已完成 %", 0, 100)
+size = 100
+for (aaa in 1:size){
+  ###
   mu = c(rep(0.5,5),rep(0,95))
   topr = simulate_topr(mu,r=10)
   ii = 0
-  for (i in topr$r.index){
-    ta0 = computeW(topr,i)
+  for (i in c(1:5)){
+  # for (i in topr$r.index){
+    ta0 = computeWObs(topr,i)
     ii = ii +1
     p = rep(0,100)
-    mu0 = rep(0,100)
-    mu0[i] = mu[i]
-    for (k in 1:100){
-      sim = simulate_topr(mu=mu0, StopT=topr$StopT, r=10)
-      if (sim$StopT<topr$StopT){
-        p[k] = 1
-      } else if ((sim$StopT==topr$StopT)&(sim$a0>ta0)){
-        p[k] = 1
-      } else{
-        p[k] = 0
-      }
-    }
-    p=sum(p)/100
-    P[(kkk-1)*10+ii] = p
-    # cat(i,":\t",p,"\n")
-  }
-}
-
-```
-
-
-```{r}
-pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 10
-for (aaa in 1:size){
-  topr = simulate_topr(mu=c(rep(0.5,1),rep(0,99)),r=10)
-  ii = 0
-  for (i in topr$r.index){
-    ii = ii +1
-    p = rep(1,100)
     mu0 = topr$mu
     mu0[i] = 0
     for (k in 1:100){
-      sim = simulate_topr(mu=mu0,StopT=topr$StopT,r=10)
-      if (sim$StopT>topr$StopT){
-        p[k] = 0
-      } else if ((sim$StopT==topr$StopT)&(sim$a0<topr$a0)){
-        p[k] = 0
-      } else{
+      sim = simulate_topr(mu=mu0, StopT=topr$StopT, r=10)
+      simW = computeWGen(sim,i)
+      if (simW>ta0[sim$StopT]){
         p[k] = 1
       }
     }
     p=sum(p)/100
-    if (i %in% seq(1,1)){
-      P0 = c(P0,p)
-    } else {
-      P1 = c(P1,p)
-    }
+    P[(aaa-1)*5+ii] = p
     # cat(i,":\t",p,"\n")
   }
-  
+  ###
   info<- sprintf("已完成 %d%%", round(aaa*100/size))
   setTkProgressBar(pb, aaa*100/size, sprintf("进度 (%s)", info),info)
 }
@@ -277,3 +323,18 @@ for (i in 1:100){
 close(pb)
 sum(LB<=topr$mu)
 ```
+
+
+
+```{r}
+CR = c()
+power = c()
+mu = c(rep(0.5,5),rep(0,95))
+for ( ii in 1:100){
+  topr = simulate_topr(mu,r=10)
+  Xbar = apply(topr$data,1,mean)
+  CR = c(CR,1 - pnorm(Xbar,mean=topr$mu,sd=1/sqrt(topr$StopT)))
+  power = c(power, 1 - pnorm(Xbar[c(1:5)],mean=0,sd=1/sqrt(topr$StopT)))
+}
+```
+

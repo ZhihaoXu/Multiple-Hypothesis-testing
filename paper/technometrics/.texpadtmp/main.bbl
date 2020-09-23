@@ -1,0 +1,700 @@
+\begin{thebibliography}{}
+
+\bibitem [\protect \citeauthoryear {%
+Bagshaw%
+\ \BBA {} Johnson%
+}{%
+Bagshaw%
+\ \BBA {} Johnson%
+}{%
+{\protect \APACyear {1975}}%
+}]{%
+bagshaw1975influence}
+\APACinsertmetastar {%
+bagshaw1975influence}%
+\begin{APACrefauthors}%
+Bagshaw, M.%
+\BCBT {}\ \BBA {} Johnson, R\BPBI A.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{1975}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {The influence of reference values and estimated variance
+  on the ARL of CUSUM tests} {The influence of reference values and estimated
+  variance on the arl of cusum tests}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of the Royal Statistical Society: Series B
+  (Methodological)}{37}{3}{413--420}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Barber%
+\ \BBA {} Cand{\`e}s%
+}{%
+Barber%
+\ \BBA {} Cand{\`e}s%
+}{%
+{\protect \APACyear {2015}}%
+}]{%
+barber2015controlling}
+\APACinsertmetastar {%
+barber2015controlling}%
+\begin{APACrefauthors}%
+Barber, R\BPBI F.%
+\BCBT {}\ \BBA {} Cand{\`e}s, E\BPBI J.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2015}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Controlling the false discovery rate via knockoffs}
+  {Controlling the false discovery rate via knockoffs}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{The Annals of Statistics}{43}{5}{2055--2085}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Barber%
+\ \BBA {} Cand{\`e}s%
+}{%
+Barber%
+\ \BBA {} Cand{\`e}s%
+}{%
+{\protect \APACyear {2019}}%
+}]{%
+barber2019knockoff}
+\APACinsertmetastar {%
+barber2019knockoff}%
+\begin{APACrefauthors}%
+Barber, R\BPBI F.%
+\BCBT {}\ \BBA {} Cand{\`e}s, E\BPBI J.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2019}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A knockoff filter for high-dimensional selective
+  inference} {A knockoff filter for high-dimensional selective
+  inference}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{The Annals of Statistics}{47}{5}{2504--2537}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Bates%
+, Cand{`e}s%
+, Janson%
+\BCBL {}\ \BBA {} Wang%
+}{%
+Bates%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2020}}%
+}]{%
+BatesEtAl2020}
+\APACinsertmetastar {%
+BatesEtAl2020}%
+\begin{APACrefauthors}%
+Bates, S.%
+, Cand{`e}s, E.%
+, Janson, L.%
+\BCBL {}\ \BBA {} Wang, W.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2020}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Metropolized Knockoff Sampling} {Metropolized knockoff
+  sampling}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of American Statistical Association}{}{}{}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Benjamini%
+, Krieger%
+\BCBL {}\ \BBA {} Yekutieli%
+}{%
+Benjamini%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2006}}%
+}]{%
+benjamini2006adaptive}
+\APACinsertmetastar {%
+benjamini2006adaptive}%
+\begin{APACrefauthors}%
+Benjamini, Y.%
+, Krieger, A\BPBI M.%
+\BCBL {}\ \BBA {} Yekutieli, D.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2006}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Adaptive linear step-up procedures that control the
+  false discovery rate} {Adaptive linear step-up procedures that control the
+  false discovery rate}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Biometrika}{93}{3}{491--507}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Capizzi%
+\ \BBA {} Masarotto%
+}{%
+Capizzi%
+\ \BBA {} Masarotto%
+}{%
+{\protect \APACyear {2011}}%
+}]{%
+capizzi2011least}
+\APACinsertmetastar {%
+capizzi2011least}%
+\begin{APACrefauthors}%
+Capizzi, G.%
+\BCBT {}\ \BBA {} Masarotto, G.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2011}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A least angle regression control chart for
+  multidimensional data} {A least angle regression control chart for
+  multidimensional data}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Technometrics}{53}{3}{285--296}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+{Du}%
+\ \BBA {} Zou%
+}{%
+{Du}%
+\ \BBA {} Zou%
+}{%
+{\protect \APACyear {2018}}%
+}]{%
+du2018line}
+\APACinsertmetastar {%
+du2018line}%
+\begin{APACrefauthors}%
+{Du}, L.%
+\BCBT {}\ \BBA {} Zou, C.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2018}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {On-line control of false discovery rates for multiple
+  datastreams} {On-line control of false discovery rates for multiple
+  datastreams}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of Statistical Planning and
+  Inference}{194}{}{1--14}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Durbin%
+\ \BBA {} Koopman%
+}{%
+Durbin%
+\ \BBA {} Koopman%
+}{%
+{\protect \APACyear {2012}}%
+}]{%
+durbin2012time}
+\APACinsertmetastar {%
+durbin2012time}%
+\begin{APACrefauthors}%
+Durbin, J.%
+\BCBT {}\ \BBA {} Koopman, S\BPBI J.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYear{2012}.
+\newblock
+\APACrefbtitle {Time series analysis by state space methods} {Time series
+  analysis by state space methods}.
+\newblock
+\APACaddressPublisher{}{Oxford university press}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Ing%
+, Lai%
+, Shen%
+, Tsang%
+\BCBL {}\ \BBA {} Yu%
+}{%
+Ing%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2017}}%
+}]{%
+ing2017multiple}
+\APACinsertmetastar {%
+ing2017multiple}%
+\begin{APACrefauthors}%
+Ing, C\BHBI K.%
+, Lai, T\BPBI L.%
+, Shen, M.%
+, Tsang, K.%
+\BCBL {}\ \BBA {} Yu, S\BHBI H.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2017}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Multiple testing in regression models with applications
+  to fault diagnosis in the big data era} {Multiple testing in regression
+  models with applications to fault diagnosis in the big data era}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Technometrics}{59}{3}{351--360}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Jiang%
+, Wang%
+\BCBL {}\ \BBA {} Tsung%
+}{%
+Jiang%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2012}}%
+}]{%
+jiang2012variable}
+\APACinsertmetastar {%
+jiang2012variable}%
+\begin{APACrefauthors}%
+Jiang, W.%
+, Wang, K.%
+\BCBL {}\ \BBA {} Tsung, F.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2012}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A variable-selection-based multivariate EWMA chart for
+  process monitoring and diagnosis} {A variable-selection-based multivariate
+  ewma chart for process monitoring and diagnosis}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of Quality Technology}{44}{3}{209--230}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+J.~{Li}%
+, Jin%
+\BCBL {}\ \BBA {} Shi%
+}{%
+J.~{Li}%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2008}}%
+}]{%
+li2008causation}
+\APACinsertmetastar {%
+li2008causation}%
+\begin{APACrefauthors}%
+{Li}, J.%
+, Jin, J.%
+\BCBL {}\ \BBA {} Shi, J.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2008}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Causation-based $T^2$ decomposition for multivariate
+  process monitoring and diagnosis} {Causation-based $t^2$ decomposition for
+  multivariate process monitoring and diagnosis}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of Quality Technology}{40}{1}{46--58}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+W.~{Li}%
+, Pu%
+, Tsung%
+\BCBL {}\ \BBA {} Xiang%
+}{%
+W.~{Li}%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2017}}%
+}]{%
+li2017robust}
+\APACinsertmetastar {%
+li2017robust}%
+\begin{APACrefauthors}%
+{Li}, W.%
+, Pu, X.%
+, Tsung, F.%
+\BCBL {}\ \BBA {} Xiang, D.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2017}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A robust self-starting spatial rank multivariate EWMA
+  chart based on forward variable selection} {A robust self-starting spatial
+  rank multivariate ewma chart based on forward variable selection}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Computers \& Industrial Engineering}{103}{}{116--130}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+W.~{Li}%
+, Xiang%
+, Tsung%
+\BCBL {}\ \BBA {} Pu%
+}{%
+W.~{Li}%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2020}}%
+}]{%
+li2020diagnostic}
+\APACinsertmetastar {%
+li2020diagnostic}%
+\begin{APACrefauthors}%
+{Li}, W.%
+, Xiang, D.%
+, Tsung, F.%
+\BCBL {}\ \BBA {} Pu, X.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2020}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A diagnostic procedure for high-dimensional data streams
+  via missed discovery rate control} {A diagnostic procedure for
+  high-dimensional data streams via missed discovery rate control}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Technometrics}{62}{1}{84--100}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Li%
+\ \BBA {} Tsung%
+}{%
+Li%
+\ \BBA {} Tsung%
+}{%
+{\protect \APACyear {2009}}%
+}]{%
+li2009false}
+\APACinsertmetastar {%
+li2009false}%
+\begin{APACrefauthors}%
+Li, Y.%
+\BCBT {}\ \BBA {} Tsung, F.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2009}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {False discovery rate-adjusted charting schemes for
+  multistage process monitoring and fault identification} {False discovery
+  rate-adjusted charting schemes for multistage process monitoring and fault
+  identification}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Technometrics}{51}{2}{186--205}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Liang%
+, Xiang%
+\BCBL {}\ \BBA {} Pu%
+}{%
+Liang%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2016}}%
+}]{%
+liang2016robust}
+\APACinsertmetastar {%
+liang2016robust}%
+\begin{APACrefauthors}%
+Liang, W.%
+, Xiang, D.%
+\BCBL {}\ \BBA {} Pu, X.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2016}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A robust multivariate EWMA control chart for detecting
+  sparse mean shifts} {A robust multivariate ewma control chart for detecting
+  sparse mean shifts}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of Quality Technology}{48}{3}{265--283}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Mason%
+, Tracy%
+\BCBL {}\ \BBA {} Young%
+}{%
+Mason%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {1995}}%
+}]{%
+mason1995decomposition}
+\APACinsertmetastar {%
+mason1995decomposition}%
+\begin{APACrefauthors}%
+Mason, R\BPBI L.%
+, Tracy, N\BPBI D.%
+\BCBL {}\ \BBA {} Young, J\BPBI C.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{1995}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Decomposition of $T^2$ for multivariate control chart
+  interpretation} {Decomposition of $t^2$ for multivariate control chart
+  interpretation}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of quality technology}{27}{2}{99--108}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Mason%
+, Tracy%
+\BCBL {}\ \BBA {} Young%
+}{%
+Mason%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {1997}}%
+}]{%
+mason1997practical}
+\APACinsertmetastar {%
+mason1997practical}%
+\begin{APACrefauthors}%
+Mason, R\BPBI L.%
+, Tracy, N\BPBI D.%
+\BCBL {}\ \BBA {} Young, J\BPBI C.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{1997}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A practical approach for interpreting multivariate $t^2$
+  control chart signals} {A practical approach for interpreting multivariate
+  $t^2$ control chart signals}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of Quality Technology}{29}{4}{396--406}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Mei%
+}{%
+Mei%
+}{%
+{\protect \APACyear {2011}}%
+}]{%
+mei2011quickest}
+\APACinsertmetastar {%
+mei2011quickest}%
+\begin{APACrefauthors}%
+Mei, Y.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2011}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Quickest detection in censoring sensor networks}
+  {Quickest detection in censoring sensor networks}.{\BBCQ}
+\newblock
+\BIn{} \APACrefbtitle {2011 IEEE International Symposium on Information Theory
+  Proceedings} {2011 ieee international symposium on information theory
+  proceedings}\ (\BPGS\ 2148--2152).
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Wang%
+\ \BBA {} Jiang%
+}{%
+Wang%
+\ \BBA {} Jiang%
+}{%
+{\protect \APACyear {2009}}%
+}]{%
+wang2009high}
+\APACinsertmetastar {%
+wang2009high}%
+\begin{APACrefauthors}%
+Wang, K.%
+\BCBT {}\ \BBA {} Jiang, W.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2009}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {High-dimensional process monitoring and fault isolation
+  via variable selection} {High-dimensional process monitoring and fault
+  isolation via variable selection}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of Quality Technology}{41}{3}{247--258}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Woodall%
+\ \BBA {} Montgomery%
+}{%
+Woodall%
+\ \BBA {} Montgomery%
+}{%
+{\protect \APACyear {2014}}%
+}]{%
+woodall2014some}
+\APACinsertmetastar {%
+woodall2014some}%
+\begin{APACrefauthors}%
+Woodall, W\BPBI H.%
+\BCBT {}\ \BBA {} Montgomery, D\BPBI C.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2014}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Some current directions in the theory and application of
+  statistical process monitoring} {Some current directions in the theory and
+  application of statistical process monitoring}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of Quality Technology}{46}{1}{78--94}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Xian%
+, Wang%
+\BCBL {}\ \BBA {} Liu%
+}{%
+Xian%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2018}}%
+}]{%
+xian2018nonparametric}
+\APACinsertmetastar {%
+xian2018nonparametric}%
+\begin{APACrefauthors}%
+Xian, X.%
+, Wang, A.%
+\BCBL {}\ \BBA {} Liu, K.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2018}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A nonparametric adaptive sampling strategy for online
+  monitoring of big data streams} {A nonparametric adaptive sampling strategy
+  for online monitoring of big data streams}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Technometrics}{60}{1}{14--25}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Xiang%
+\ \BBA {} Tsung%
+}{%
+Xiang%
+\ \BBA {} Tsung%
+}{%
+{\protect \APACyear {2008}}%
+}]{%
+xiang2008statistical}
+\APACinsertmetastar {%
+xiang2008statistical}%
+\begin{APACrefauthors}%
+Xiang, L.%
+\BCBT {}\ \BBA {} Tsung, F.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2008}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Statistical monitoring of multi-stage processes based on
+  engineering models} {Statistical monitoring of multi-stage processes based on
+  engineering models}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{IIE transactions}{40}{10}{957--970}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Zamba%
+\ \BBA {} Hawkins%
+}{%
+Zamba%
+\ \BBA {} Hawkins%
+}{%
+{\protect \APACyear {2006}}%
+}]{%
+zamba2006multivariate}
+\APACinsertmetastar {%
+zamba2006multivariate}%
+\begin{APACrefauthors}%
+Zamba, K.%
+\BCBT {}\ \BBA {} Hawkins, D\BPBI M.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2006}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A multivariate change-point model for statistical
+  process control} {A multivariate change-point model for statistical process
+  control}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Technometrics}{48}{4}{539--549}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Zhu%
+\ \BBA {} Jiang%
+}{%
+Zhu%
+\ \BBA {} Jiang%
+}{%
+{\protect \APACyear {2009}}%
+}]{%
+zhu2009adaptive}
+\APACinsertmetastar {%
+zhu2009adaptive}%
+\begin{APACrefauthors}%
+Zhu, Y.%
+\BCBT {}\ \BBA {} Jiang, W.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2009}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {An adaptive $T^2$ chart for multivariate process
+  monitoring and diagnosis} {An adaptive $t^2$ chart for multivariate process
+  monitoring and diagnosis}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{IIE Transactions}{41}{11}{1007--1018}.
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Zou%
+, Wang%
+, {Zi}%
+\BCBL {}\ \BBA {} Jiang%
+}{%
+Zou%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2015}}%
+}]{%
+zou2015efficient}
+\APACinsertmetastar {%
+zou2015efficient}%
+\begin{APACrefauthors}%
+Zou, C.%
+, Wang, Z.%
+, {Zi}, X.%
+\BCBL {}\ \BBA {} Jiang, W.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2015}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {An efficient online monitoring method for
+  high-dimensional data streams} {An efficient online monitoring method for
+  high-dimensional data streams}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Technometrics}{57}{3}{374--387}.
+\PrintBackRefs{\CurrentBib}
+
+\end{thebibliography}
