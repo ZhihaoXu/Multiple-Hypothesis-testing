@@ -1,0 +1,193 @@
+---
+title: "CI_new"
+author: "Xu Zhihao"
+date: "9/29/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tcltk2) 
+library(MASS)
+library(Smisc)
+
+f = function(x){
+  return(dnorm(x,mean=0,sd=1))
+}
+g = function(x){
+  return(dnorm(x,mean=0.5,sd=1))
+}
+
+# index: the affected censor, K: the number of all the censors
+generateN = function(mu,size=100){
+  column = rnorm(size,mean=mu,sd=1)
+  return(as.matrix(column))
+}
+
+# n = number of infected censor, K = Number of Censor
+simulate_topr = function(mu,r=10,a=46.55,StopT=10000000){
+  W = rep(0,100)
+  m = 0
+  size0=100
+  data = matrix(generateN(mu,size=100*size0),nrow=100,byrow=FALSE)
+  
+  allW = matrix(rep(NA,10000),100)
+  # allT = c()
+  while (m < StopT) {
+    m = m + 1
+    if (m %% size0 == 0) {
+      data=cbind(data,matrix(generateN(mu,size=100*size0),nrow=100,byrow=FALSE))
+      allW = cbind(allW,matrix(rep(NA,10000),100))
+    }
+    
+    W = W + log(g(data[,m])/f(data[,m]))
+    W = ifelse(W>0,W,0)
+    allW[,m] = W
+    
+    s = sort(W,decreasing = TRUE,index.return =TRUE)
+    w = s$x[1:r]
+    r.index = s$ix[1:r]
+    
+    t = sum(w)
+    if (t > a){
+      break
+    }
+  }
+  data = data[,1:m]
+  allW = allW[,1:m]
+  muHat = apply(data,1,mean)
+  
+  cusumX = apply(data,1,cusum,k=0,h=10000)[m,]
+  s = sort(cusumX,decreasing = TRUE,index.return =TRUE)
+  c.index = s$ix[1:r
+                 ]
+  meanX = apply(data,1,mean)
+  s = sort(meanX,decreasing = TRUE,index.return =TRUE)
+  m.index = s$ix[1:r]
+  # data: the whole dataset, n: stopping time, 
+  # W: the vector of all the W statistic, r.index: selected index
+  result <- list(data=data, StopT=m, W=W, allW = allW,r.index = r.index, 
+                 a0=sum(w), mu=mu, muHat=muHat, r=r, a=a, 
+                 cusumX = cusumX, c.index = c.index,
+                 meanX = meanX, m.index=m.index)
+  return(result)
+}
+topr = simulate_topr(mu=c(rep(0.5,5),rep(0,95)))
+```
+
+```{r}
+topr = simulate_topr(mu=c(rep(1,5),rep(0,95)))
+for (j in topr$r.index){
+  mu0 = topr$mu
+  mu0[j] = 0
+  ps_obs = matrix(rep(NA,200*topr$r),200)
+  sims_W = matrix(rep(NA,200*topr$r),200)
+  for (i in 1:200){
+    # sim = simulate_topr(mu0,StopT = topr$StopT)
+    # sims_W[i,] = sim$W[sim$r.index]
+    # ps_obs[i,] = topr$allW[topr$r.index,sim$StopT] <= sim$W[sim$r.index]
+    sim = simulate_topr(mu0)
+    sims_W[i,] = sim$meanX[sim$m.index]
+    ps_obs[i,] = topr$meanX[topr$m.index] <= sims_W[i,] 
+  }
+  p_obs = min(apply(ps_obs,2,mean))
+  cat(p_obs,"\n")
+}
+```
+
+
+```{r}
+PPP = c()
+topr = simulate_topr(mu=c(rep(1,5),rep(0,95)))
+for (j in topr$r.index){
+  mu0 = topr$mu
+  mu0[j] = 0
+  ps_obs = matrix(rep(NA,200*topr$r),200)
+  sims_W = matrix(rep(NA,200*topr$r),200)
+  for (i in 1:200){
+    sim = simulate_topr(mu0)
+    sims_W[i,] = sim$meanX[sim$m.index]
+    ps_obs[i,] = topr$meanX[topr$m.index] <= sims_W[i,]
+  }
+  p_obs = min(apply(ps_obs,2,mean))
+  # p_obs = min(p.adjust(apply(ps_obs,2,mean),"BH"))
+  cat(p_obs,"\n")
+  
+  ps = rep(NA,200)
+  for (i in 1:200){
+    sim = simulate_topr(mu0)
+    p_matrix = matrix(rep(sim$meanX[sim$m.index],200),nrow=200,byrow=T)<=sims_W
+    PPP = c(PPP,apply(p_matrix, 2, mean))
+    ps[i] = min(apply(p_matrix, 2, mean))
+    # ps[i] = min(p.adjust(apply(p_matrix, 2, mean),"BH"))
+  }
+  p = mean(p_obs>=ps)
+  cat(j,"\t",p,"\n")
+}
+```
+
+
+```{r}
+pb <- tkProgressBar("进度","已完成 %", 0, 100)
+size = 50
+# P0 = c()
+# P1 = c()
+for (aaa in 1:size){
+  ###
+  cat("Simulate ",aaa, "\n")
+  topr = simulate_topr(mu=c(rep(1,5),rep(0,95)))
+  for (j in topr$r.index){
+    mu0 = topr$mu
+    mu0[j] = 0
+    ps_obs = matrix(rep(NA,200*topr$r),200)
+    sims_W = matrix(rep(NA,200*topr$r),200)
+    for (i in 1:200){
+      sim = simulate_topr(mu0)
+      sims_W[i,] = sim$meanX[sim$m.index]
+      ps_obs[i,] = topr$meanX[topr$m.index] <= sims_W[i,]
+    }
+    p_obs = min(apply(ps_obs,2,mean))
+    # p_obs = min(p.adjust(apply(ps_obs,2,mean),"BH"))
+    cat(p_obs,"\n")
+    
+    ps = rep(NA,200)
+    for (i in 1:200){
+      sim = simulate_topr(mu0)
+      p_matrix = matrix(rep(sim$meanX[sim$m.index],200),nrow=200,byrow=T)<=sims_W
+      ps[i] = min(apply(p_matrix, 2, mean))
+      # ps[i] = min(p.adjust(apply(p_matrix, 2, mean),"BH"))
+    }
+    p = mean(p_obs>=ps)
+    cat(j,"\t",p,"\n")
+    if (j %in% 1:5){
+      P0 = c(P0,p)
+    }else{
+      P1 = c(P1,p)
+    }
+  }
+  ###
+  info<- sprintf("已完成 %d%%", round(aaa*100/size))
+  setTkProgressBar(pb, aaa*100/size, sprintf("进度 (%s)", info),info)
+}
+close(pb)
+```
+
+
+
+
+
+```{r}
+ind = rep(NA,1000)
+for (iii in 1:1000){
+  topr = simulate_topr(mu=c(rep(0.5,5),rep(0,95)))
+  ind[iii] = min(topr$meanX[1:5])>=max(topr$meanX[6:100])
+}
+mean(ind)
+```
+
+
+
+

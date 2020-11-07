@@ -12,8 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tcltk2) 
-library(parallel)
 library(MASS)
+library(Smisc)
 
 f = function(x){
   return(dnorm(x,mean=0,sd=1))
@@ -101,107 +101,96 @@ computeWGen = function(sim,i){
 }
 ```
 
-```{r}
-ST = c()
-mu = c(rep(1,2),rep(0.5,2),rep(0,96))
-for (i in 1:100){
-  topr = simulate_topr(mu,r=10,a=46.55*2)
-  ST = c(ST,topr$StopT)
-}
-mean(ST)
-```
-
-```{r}
-mu = c(rep(1.5,2),rep(0.75,2),rep(0,96))
-topr = simulate_topr(mu,r=10,a=46.55*2)
-ii = 0
-for (i in topr$r.index){
-  ii = ii +1
-  p = rep(0,200)
-  mu0 = topr$mu
-  mu0[3] = 0
-  for (k in 1:200){
-    sim = simulate_topr(mu=mu0, StopT=topr$StopT, r=10)
-    # if (sim$StopT<topr$StopT){
-    #   p[k] = 1
-    # } else if ((sim$StopT==topr$StopT)&(simW>ta0[sim$StopT])){
-    #   p[k] = 1
-    # } else{
-    #   p[k] = 0
-    # }
-    if (sort(apply(sim$data,1,mean))[101-ii]>apply(topr$data[,1:sim$StopT],1,mean)[i]){
-      p[k] = 1
-    }
-  }
-  p=sum(p)/200
-  cat(i,":\t",p,"\n")
-}
-```
-
-
-
 
 
 
 ```{r}
+rej = c()
+q = 0.2
 mu = c(rep(0.5,5),rep(0,95))
-topr = simulate_topr(mu,r=10)
+topr = simulate_topr(mu,r=10,a=46.55)
 ii = 0
 for (i in topr$r.index){
-  ta0 = computeWObs(topr,i)
   ii = ii +1
-  p = rep(0,100)
+  # p = rep(0,200)
+  p = matrix(rep(NA,(11-ii)*200),200)
   mu0 = topr$mu
   mu0[i] = 0
-  for (k in 1:100){
+  for (k in 1:200){
     sim = simulate_topr(mu=mu0, StopT=topr$StopT, r=10)
-    simW = computeWGen(sim,i)
-    # if (sim$StopT<topr$StopT){
-    #   # print("Early Stop")
-    #   p[k] = 1
-    # } else if ((sim$StopT==topr$StopT)&(simW>ta0[sim$StopT])){
-    #   p[k] = 1
-    # } else{
-    #   p[k] = 0
-    # }
-    if (simW>ta0[sim$StopT]){
-      p[k] = 1
+    # sortMean = sort(apply(sim$data,1,mean))
+    # obsMean = apply(topr$data[topr$r.index,1:sim$StopT],1,mean)
+    sortMean = sort(sim$W)
+    obsMean = topr$allW[topr$r.index,sim$StopT]
+    if ((11-ii)>1){
+       p[k,] = as.numeric(sortMean[(101-ii):91]>obsMean[ii:10])
+    } else{
+      p[k,] = sortMean[101-ii] > obsMean[10]
     }
   }
-  p=sum(p)/100
-  cat(i,":\t",p,"\n")
+  p = apply(p,2,mean) 
+  if (sum(p<(q/(11-ii):1))>0){
+    rej = c(rej,i)
+    cat(i,":\t",p,"\n")
+  }
+  # cat(i,":\t",p,"\n")
 }
-
+sum(1:5 %in% rej)/5
+sum((rej %in% 1:5 == FALSE))/length(rej)
 ```
 
 
+
+
+
+
+
+
 ```{r}
-P = rep(NA,5*100)
 pb <- tkProgressBar("进度","已完成 %", 0, 100)
-size = 100
+size = 20
+FDR = rep(NA,size)
+POWER = rep(NA,size)
+CR = rep(NA,size)
 for (aaa in 1:size){
   ###
-  mu = c(rep(0.5,5),rep(0,95))
-  topr = simulate_topr(mu,r=10)
+  rej = c()
+  q = 0.2
+  mu = c(rep(1,5),rep(0,95))
+  topr = simulate_topr(mu,r=10,a=46.55)
   ii = 0
-  for (i in c(1:5)){
-  # for (i in topr$r.index){
-    ta0 = computeWObs(topr,i)
+  for (i in topr$r.index){
     ii = ii +1
-    p = rep(0,100)
+    p = matrix(rep(NA,(11-ii)*200),200)
+    # p = matrix(rep(NA,10*200),200)
     mu0 = topr$mu
     mu0[i] = 0
-    for (k in 1:100){
+    for (k in 1:200){
       sim = simulate_topr(mu=mu0, StopT=topr$StopT, r=10)
-      simW = computeWGen(sim,i)
-      if (simW>ta0[sim$StopT]){
-        p[k] = 1
+      # sortMean = sort(apply(sim$data[sim$r.index,],1,mean),decreasing = TRUE)
+      # obsMean = sort(apply(topr$data[topr$r.index,1:sim$StopT],1,mean),decreasing = TRUE)
+      sortMean = apply(sim$data[sim$r.index,],1,cusum,k=0,h=10000)[sim$StopT,]
+      obsMean = apply(topr$data[topr$r.index,1:sim$StopT],1,cusum,k=0,h=10000)[sim$StopT,]
+      # sortMean = sim$W[sim$r.index]
+      # obsMean = topr$allW[topr$r.index,sim$StopT]
+      if ((11-ii)>1){
+         p[k,] = as.numeric(sortMean[ii:10]>obsMean[ii:10])
+      } else{
+        p[k,] = sortMean[10] > obsMean[10]
       }
+      # p[k,] = as.numeric(sortMean[100:91]>obsMean[1:10])
     }
-    p=sum(p)/100
-    P[(aaa-1)*5+ii] = p
+    p = apply(p,2,mean) 
+    # if (sum(p<(q*c(1:10)/10))>0){
+    if (sum(sort(p)<(q*1:(11-ii)/(11-ii)))>0){
+      rej = c(rej,i)
+      cat(i,":\t",p,"\n")
+    }
     # cat(i,":\t",p,"\n")
   }
+  POWER[aaa] = sum(1:5 %in% rej)/5
+  FDR[aaa] = sum((rej %in% 1:5 == FALSE))/length(rej)
+  CR[aaa] = length(rej)/10
   ###
   info<- sprintf("已完成 %d%%", round(aaa*100/size))
   setTkProgressBar(pb, aaa*100/size, sprintf("进度 (%s)", info),info)
@@ -210,6 +199,11 @@ close(pb)
 ```
 
 
+```{r}
+FDR[is.na(FDR)] = 0
+mean(FDR)
+mean(POWER)
+```
 
 
 
